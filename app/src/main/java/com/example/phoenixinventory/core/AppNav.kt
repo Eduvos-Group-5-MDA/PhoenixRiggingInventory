@@ -64,8 +64,9 @@ fun AppNavHost() {
                     }
                 },
                 onViewAllItems = { /* TODO */ },
-                onCheckedInOut = { /* TODO */ },
-                onAddItem = { nav.navigate(Dest.ADD_ITEM) }, // ✅ goes to Add Item
+                onCheckedIn = { /* TODO */ },
+                onCheckedOut = { /* TODO */ },
+                onManageItem = { nav.navigate(Dest.ADD_ITEM) }, // ✅ goes to Add Item
                 onRemoveItem = { /* TODO */ }
             )
         }

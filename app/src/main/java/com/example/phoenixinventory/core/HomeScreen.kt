@@ -30,7 +30,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.example.phoenixinventory.R
 /* -------------------- Palette (dark) -------------------- */
 private val Carbon = Color(0xFF0E1116)
 private val Charcoal = Color(0xFF151A21)
@@ -68,22 +71,17 @@ fun HomeScreen(
                 .padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top small badge (title on the left in screenshot)
-            TopBadge()
 
-            Spacer(Modifier.height(24.dp))
-
-            // Big center emblem
+            Spacer(Modifier.height(8.dp)) // small gap above the emblem if you like
             BigEmblem()
-
             Spacer(Modifier.height(18.dp))
 
-            Text(
-                text = "Phoenix Rigging",
-                color = OnDark,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
+//            Text(
+//                text = "Phoenix Rigging",
+//                color = OnDark,
+//                fontSize = 28.sp,
+//                fontWeight = FontWeight.ExtraBold
+//            )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Professional rigging equipment management\nsystem",
@@ -174,25 +172,26 @@ private fun TopBadge() {
 
 @Composable
 private fun BigEmblem() {
-    Box(
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = PrimaryContainer,
+        tonalElevation = 2.dp,
+        shadowElevation = 2.dp,
         modifier = Modifier
-            .size(120.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(PrimaryContainer),
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()      // full width inside the card
+            .height(180.dp)      // make it taller if you want
     ) {
         Box(
             modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape)
-                .background(Ink),
+                .fillMaxSize()
+                .padding(20.dp),  // breathing room for the logo
             contentAlignment = Alignment.Center
         ) {
-            androidx.compose.material3.Icon(
-                imageVector = Icons.Outlined.Build,
-                contentDescription = null,
-                tint = OnDark,
-                modifier = Modifier.size(32.dp)
+            Image(
+                painter = painterResource(id = R.drawable.companylogo),
+                contentDescription = "Company Logo",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth(0.9f) // scale inside the box; tweak 0.8–1.0
             )
         }
     }

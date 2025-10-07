@@ -45,8 +45,9 @@ fun DashboardScreen(
     checkedOut: Int,
     onLogout: () -> Unit = {},
     onViewAllItems: () -> Unit = {},
-    onCheckedInOut: () -> Unit = {},
-    onAddItem: () -> Unit = {},
+    onCheckedIn: () -> Unit = {},
+    onCheckedOut: () -> Unit = {},
+    onManageItem: () -> Unit = {},
     onRemoveItem: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -144,7 +145,7 @@ fun DashboardScreen(
                 )
                 StatCard(
                     value = checkedOut,
-                    label = "Checked Out",
+                    label = "Checked Out Items",
                     icon = Icons.Outlined.Assignment,
                     modifier = Modifier.weight(1f)
                 )
@@ -166,28 +167,53 @@ fun DashboardScreen(
             )
 
             ActionRow(
-                title = "Checked In/Out",
-                subtitle = "$checkedOut checked out items",
+                title = "Checked Out Items",
+                subtitle = "View all items that have been checked out.",
                 icon = Icons.Outlined.CheckCircle,
                 iconBg = Color(0xFF17C964),
-                onClick = onCheckedInOut
+                onClick = onCheckedOut
             )
 
             ActionRow(
-                title = "Add Item",
-                subtitle = "Add new equipment",
+                title = "Checked In Items",
+                subtitle = "View all items that have not been checked .",
+                icon = Icons.Outlined.CheckCircle,
+                iconBg = Color(0xFF17C964),
+                onClick = onCheckedOut
+            )
+
+            ActionRow(
+                title = "Manage Items",
+                subtitle = "Add, Remove, Edit items.",
                 icon = Icons.Outlined.Add,
                 iconBg = Color(0xFF8B5CF6),
-                onClick = onAddItem
+                onClick = onManageItem
             )
 
             ActionRow(
-                title = "Remove Item",
-                subtitle = "Manage equipment",
-                icon = Icons.Outlined.Delete,
-                iconBg = Color(0xFFEF4444),
-                onClick = onRemoveItem
+                title = "Check In Item",
+                subtitle = "Check in an item that has been checked out.",
+                icon = Icons.Outlined.Add,
+                iconBg = Color(0xFF8B5CF6),
+                onClick = onManageItem
             )
+
+            ActionRow(
+                title = "Check Out Item",
+                subtitle = "Check out an item.",
+                icon = Icons.Outlined.Add,
+                iconBg = Color(0xFF8B5CF6),
+                onClick = onManageItem
+            )
+
+            ActionRow(
+                title = "Manage User",
+                subtitle = "Manage or edit an employee or guest account.",
+                icon = Icons.Outlined.Add,
+                iconBg = Color(0xFF8B5CF6),
+                onClick = onManageItem
+            )
+
 
             Spacer(Modifier.height(24.dp))
         }
