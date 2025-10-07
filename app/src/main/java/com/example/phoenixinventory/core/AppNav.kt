@@ -58,7 +58,11 @@ fun AppNavHost() {
                 role = "Employee",
                 totalItems = 3,
                 checkedOut = 2,
-                onBack = { nav.popBackStack() },
+                onLogout = {
+                    nav.navigate(Dest.HOME) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
                 onViewAllItems = { /* TODO */ },
                 onCheckedInOut = { /* TODO */ },
                 onAddItem = { nav.navigate(Dest.ADD_ITEM) }, // ✅ goes to Add Item
