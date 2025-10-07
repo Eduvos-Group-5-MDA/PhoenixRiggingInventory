@@ -10,6 +10,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,13 +43,13 @@ fun DashboardScreen(
     role: String,
     totalItems: Int,
     checkedOut: Int,
-    onBack: () -> Unit = {},
-    onOpenExternal: () -> Unit = {},
+    onLogout: () -> Unit = {},
     onViewAllItems: () -> Unit = {},
     onCheckedInOut: () -> Unit = {},
     onAddItem: () -> Unit = {},
     onRemoveItem: () -> Unit = {}
 ) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -68,10 +72,6 @@ fun DashboardScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = OnDark)
-                }
-                Spacer(Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
                         .size(28.dp)
@@ -85,8 +85,8 @@ fun DashboardScreen(
                     Text("Dashboard", color = OnDark, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Text("Welcome back, $userName", color = Muted, fontSize = 13.sp)
                 }
-                IconButton(onClick = onOpenExternal) {
-                    Icon(Icons.Outlined.OpenInNew, contentDescription = "Open", tint = OnDark)
+                IconButton(onClick = { showLogoutDialog = true }) {
+                    Icon(Icons.Outlined.Logout, contentDescription = "Logout", tint = OnDark)
                 }
             }
 
@@ -190,6 +190,29 @@ fun DashboardScreen(
             )
 
             Spacer(Modifier.height(24.dp))
+        }
+
+        /* ---------- Logout Confirmation Dialog ---------- */
+        if (showLogoutDialog) {
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = { Text("Logout", color = OnDark) },
+                text = { Text("Are you sure you want to log out?", color = Muted) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }) {
+                        Text("Yes", color = Color(0xFFEF4444))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutDialog = false }) {
+                        Text("Cancel", color = OnDark)
+                    }
+                },
+                containerColor = CardDark
+            )
         }
     }
 }
