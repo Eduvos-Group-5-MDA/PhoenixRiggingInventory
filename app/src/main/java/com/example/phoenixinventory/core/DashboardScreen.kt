@@ -43,6 +43,10 @@ fun DashboardScreen(
     role: String,
     totalItems: Int,
     checkedOut: Int,
+    totalValue: Double,
+    itemsOutOver30Days: Int,
+    stolenLostDamagedValue: Double,
+    stolenLostDamagedCount: Int,
     onLogout: () -> Unit = {},
     onViewAllItems: () -> Unit = {},
     onCheckedIn: () -> Unit = {},
@@ -134,11 +138,11 @@ fun DashboardScreen(
 
             /* ---------- Stats ---------- */
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 StatCard(
-                    value = totalItems,
+                    value = totalItems.toString(),
                     label = "Total Items",
                     icon = Icons.Outlined.Inventory,
                     modifier = Modifier.weight(1f)
@@ -151,6 +155,77 @@ fun DashboardScreen(
                 )
             }
 
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                StatCard(
+                    value = "$${"%.0f".format(totalValue)}",
+                    label = "Total Value",
+                    icon = Icons.Outlined.AttachMoney,
+                    modifier = Modifier.weight(1f)
+                )
+                StatCard(
+                    value = itemsOutOver30Days.toString(),
+                    label = "30+ Days Out",
+                    icon = Icons.Outlined.Warning,
+                    iconTint = if (itemsOutOver30Days > 0) Color(0xFFEF4444) else OnDark,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Stolen/Lost/Damaged Card (full width)
+            if (stolenLostDamagedCount > 0) {
+                Surface(
+                    color = Charcoal,
+                    shape = RoundedCornerShape(20.dp),
+                    tonalElevation = 2.dp,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.ReportProblem,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Stolen/Lost/Damaged",
+                                    color = OnDark,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "$stolenLostDamagedCount items",
+                                    color = Muted,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        Text(
+                            text = "$${"%.0f".format(stolenLostDamagedValue)}",
+                            color = Color(0xFFEF4444),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
 
             Spacer(Modifier.height(22.dp))
             Text("Quick Actions", color = OnDark, fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -160,7 +235,7 @@ fun DashboardScreen(
             /* ---------- Action Rows ---------- */
             ActionRow(
                 title = "View All Items",
-                subtitle = "View all $totalItems items",
+                subtitle = "Browse all items.",
                 icon = Icons.Outlined.FormatListBulleted,
                 iconBg = Color(0xFF0A6CFF),
                 onClick = onViewAllItems
@@ -247,10 +322,11 @@ fun DashboardScreen(
 
 @Composable
 private fun StatCard(
-    value: Int,
+    value: String,
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    iconTint: Color = OnDark
 ) {
     Surface(
         color = Charcoal,
@@ -268,9 +344,9 @@ private fun StatCard(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = value.toString(),
+                    text = value,
                     color = OnDark,
-                    fontSize = 26.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
@@ -282,7 +358,7 @@ private fun StatCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = OnDark,
+                tint = iconTint,
                 modifier = Modifier.size(26.dp)
             )
         }
@@ -342,8 +418,12 @@ private fun PreviewDashboard() {
             userName = "John Doe",
             email = "john.doe@gmail.com",
             role = "Employee",
-            totalItems = 3,
-            checkedOut = 2
+            totalItems = 5,
+            checkedOut = 2,
+            totalValue = 2490.0,
+            itemsOutOver30Days = 1,
+            stolenLostDamagedValue = 520.0,
+            stolenLostDamagedCount = 1
         )
     }
 }
