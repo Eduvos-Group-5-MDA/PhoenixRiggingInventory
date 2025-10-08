@@ -291,6 +291,23 @@ fun DashboardScreen(
                 onClick = onManageUsers
             )
 
+            ActionRow(
+                title = "Check Out Item",
+                subtitle = "Check out an item.",
+                icon = Icons.Outlined.Add,
+                iconBg = Color(0xFF8B5CF6),
+                onClick = onManageItem
+            )
+
+            ActionRow(
+                title = "Manage User",
+                subtitle = "Manage or edit an employee or guest account.",
+                icon = Icons.Outlined.Add,
+                iconBg = Color(0xFF8B5CF6),
+                onClick = onManageItem
+            )
+
+
             Spacer(Modifier.height(24.dp))
         }
 
