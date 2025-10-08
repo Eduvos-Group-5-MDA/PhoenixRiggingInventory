@@ -153,11 +153,15 @@ fun LoginScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = PrimaryContainer,
                             unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
+                            errorBorderColor = Color(0xFFFF4C4C), // red border when invalid
                             cursorColor = OnDark,
                             focusedTextColor = OnDark,
                             unfocusedTextColor = OnDark,
+                            errorTextColor = OnDark, // keep white text even when invalid
                             focusedPlaceholderColor = Muted,
-                            unfocusedPlaceholderColor = Muted
+                            unfocusedPlaceholderColor = Muted,
+                            errorPlaceholderColor = Muted, // gray placeholder in error state
+                            errorSupportingTextColor = Color(0xFFFF4C4C) // red error message
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -196,11 +200,15 @@ fun LoginScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = PrimaryContainer,
                             unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
+                            errorBorderColor = Color(0xFFFF4C4C), // red border when invalid
                             cursorColor = OnDark,
                             focusedTextColor = OnDark,
                             unfocusedTextColor = OnDark,
+                            errorTextColor = OnDark, // keep white text even when invalid
                             focusedPlaceholderColor = Muted,
-                            unfocusedPlaceholderColor = Muted
+                            unfocusedPlaceholderColor = Muted,
+                            errorPlaceholderColor = Muted, // gray placeholder in error state
+                            errorSupportingTextColor = Color(0xFFFF4C4C) // red error message
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
