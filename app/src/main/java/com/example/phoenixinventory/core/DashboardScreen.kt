@@ -148,7 +148,7 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    value = checkedOut,
+                    value = checkedOut.toString(),
                     label = "Checked Out Items",
                     icon = Icons.Outlined.Assignment,
                     modifier = Modifier.weight(1f)
