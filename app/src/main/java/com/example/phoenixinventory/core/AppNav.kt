@@ -35,12 +35,10 @@ fun AppNavHost() {
 
         composable(Dest.LOGIN) {
             LoginScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.HOME) },
                 onLoginSuccess = {
-                    // GO TO DASHBOARD (do NOT pop back to HOME)
                     nav.navigate(Dest.DASHBOARD) {
                         launchSingleTop = true
-                        // optional: remove LOGIN from back stack so Back goes to HOME
                         popUpTo(Dest.LOGIN) { inclusive = true }
                     }
                 },
@@ -50,12 +48,12 @@ fun AppNavHost() {
 
         composable(Dest.REGISTER) {
             RegisterScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.HOME) },
                 onRegistered = { nav.popBackStack(Dest.HOME, inclusive = false) },
                 onGoToLogin = { nav.navigate(Dest.LOGIN) }
             )
         }
-//hi
+//testing
         composable(Dest.DASHBOARD) {
             val totalItems = com.example.phoenixinventory.data.DataRepository.getAllItems().size
             val checkedOut = com.example.phoenixinventory.data.DataRepository.getCheckedOutCount()
@@ -81,8 +79,8 @@ fun AppNavHost() {
                     }
                 },
                 onViewAllItems = { nav.navigate(Dest.VIEW_ALL_ITEMS) },
-                onCheckedInOut = { nav.navigate(Dest.CHECKED_OUT_ITEMS) },
-                onAddItem = { nav.navigate(Dest.ADD_ITEM) },
+                onCheckedOut = { nav.navigate(Dest.CHECKED_OUT_ITEMS) },
+                onManageItem = { nav.navigate(Dest.ADD_ITEM) },
                 onManageUsers = { nav.navigate(Dest.MANAGE_USERS) }
             )
         }

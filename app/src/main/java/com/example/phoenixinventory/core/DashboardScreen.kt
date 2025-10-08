@@ -49,8 +49,11 @@ fun DashboardScreen(
     stolenLostDamagedCount: Int,
     onLogout: () -> Unit = {},
     onViewAllItems: () -> Unit = {},
-    onCheckedInOut: () -> Unit = {},
-    onAddItem: () -> Unit = {},
+    onCheckedIn: () -> Unit = {},
+    onCheckedOut: () -> Unit = {},
+    onCheckIn: () -> Unit = {},
+    onCheckOut: () -> Unit = {},
+    onManageItem: () -> Unit = {},
     onManageUsers: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -234,7 +237,7 @@ fun DashboardScreen(
             /* ---------- Action Rows ---------- */
             ActionRow(
                 title = "View All Items",
-                subtitle = "Browse all $totalItems items",
+                subtitle = "Browse all items.",
                 icon = Icons.Outlined.FormatListBulleted,
                 iconBg = Color(0xFF0A6CFF),
                 onClick = onViewAllItems
@@ -242,18 +245,42 @@ fun DashboardScreen(
 
             ActionRow(
                 title = "Checked Out Items",
-                subtitle = "$checkedOut items currently out",
+                subtitle = "View all items currently checked out,",
                 icon = Icons.Outlined.Assignment,
                 iconBg = Color(0xFF17C964),
-                onClick = onCheckedInOut
+                onClick = onCheckedOut
             )
 
             ActionRow(
-                title = "Add Item",
-                subtitle = "Add new equipment",
+                title = "Checked In Items",
+                subtitle = "View all items currently not checked out,",
+                icon = Icons.Outlined.Assignment,
+                iconBg = Color(0xFF17C964),
+                onClick = onCheckedIn
+            )
+
+            ActionRow(
+                title = "Manage Item",
+                subtitle = "Add, edit or delete item,",
                 icon = Icons.Outlined.Add,
                 iconBg = Color(0xFF8B5CF6),
-                onClick = onAddItem
+                onClick = onManageItem
+            )
+
+            ActionRow(
+                title = "Check Out Item",
+                subtitle = "Check out an item,",
+                icon = Icons.Outlined.Assignment,
+                iconBg = Color(0xFF17C964),
+                onClick = onCheckOut
+            )
+
+            ActionRow(
+                title = "Check In Item",
+                subtitle = "Check in an item that you currently have checked out,",
+                icon = Icons.Outlined.Assignment,
+                iconBg = Color(0xFF17C964),
+                onClick = onCheckIn
             )
 
             ActionRow(
