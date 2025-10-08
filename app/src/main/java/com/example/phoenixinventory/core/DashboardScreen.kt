@@ -51,10 +51,8 @@ fun DashboardScreen(
     onViewAllItems: () -> Unit = {},
     onCheckedIn: () -> Unit = {},
     onCheckedOut: () -> Unit = {},
-    onCheckIn: () -> Unit = {},
-    onCheckOut: () -> Unit = {},
     onManageItem: () -> Unit = {},
-    onManageUsers: () -> Unit = {}
+    onRemoveItem: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     Box(
@@ -150,8 +148,8 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    value = checkedOut.toString(),
-                    label = "Checked Out",
+                    value = checkedOut,
+                    label = "Checked Out Items",
                     icon = Icons.Outlined.Assignment,
                     modifier = Modifier.weight(1f)
                 )
@@ -245,23 +243,31 @@ fun DashboardScreen(
 
             ActionRow(
                 title = "Checked Out Items",
-                subtitle = "View all items currently checked out,",
-                icon = Icons.Outlined.Assignment,
+                subtitle = "View all items that have been checked out.",
+                icon = Icons.Outlined.CheckCircle,
                 iconBg = Color(0xFF17C964),
                 onClick = onCheckedOut
             )
 
             ActionRow(
                 title = "Checked In Items",
-                subtitle = "View all items currently not checked out,",
-                icon = Icons.Outlined.Assignment,
+                subtitle = "View all items that have not been checked .",
+                icon = Icons.Outlined.CheckCircle,
                 iconBg = Color(0xFF17C964),
-                onClick = onCheckedIn
+                onClick = onCheckedOut
             )
 
             ActionRow(
-                title = "Manage Item",
-                subtitle = "Add, edit or delete item,",
+                title = "Manage Items",
+                subtitle = "Add, Remove, Edit items.",
+                icon = Icons.Outlined.Add,
+                iconBg = Color(0xFF8B5CF6),
+                onClick = onManageItem
+            )
+
+            ActionRow(
+                title = "Check In Item",
+                subtitle = "Check in an item that has been checked out.",
                 icon = Icons.Outlined.Add,
                 iconBg = Color(0xFF8B5CF6),
                 onClick = onManageItem
@@ -269,27 +275,20 @@ fun DashboardScreen(
 
             ActionRow(
                 title = "Check Out Item",
-                subtitle = "Check out an item,",
-                icon = Icons.Outlined.Assignment,
-                iconBg = Color(0xFF17C964),
-                onClick = onCheckOut
+                subtitle = "Check out an item.",
+                icon = Icons.Outlined.Add,
+                iconBg = Color(0xFF8B5CF6),
+                onClick = onManageItem
             )
 
             ActionRow(
-                title = "Check In Item",
-                subtitle = "Check in an item that you currently have checked out,",
-                icon = Icons.Outlined.Assignment,
-                iconBg = Color(0xFF17C964),
-                onClick = onCheckIn
+                title = "Manage User",
+                subtitle = "Manage or edit an employee or guest account.",
+                icon = Icons.Outlined.Add,
+                iconBg = Color(0xFF8B5CF6),
+                onClick = onManageItem
             )
 
-            ActionRow(
-                title = "Manage Users",
-                subtitle = "View and manage users",
-                icon = Icons.Outlined.Group,
-                iconBg = Color(0xFFF5A524),
-                onClick = onManageUsers
-            )
 
             Spacer(Modifier.height(24.dp))
         }

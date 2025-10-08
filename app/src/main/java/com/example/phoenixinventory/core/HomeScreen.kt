@@ -34,7 +34,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.example.phoenixinventory.R
-
 /* -------------------- Palette (dark) -------------------- */
 private val Carbon = Color(0xFF0E1116)
 private val Charcoal = Color(0xFF151A21)
@@ -77,7 +76,12 @@ fun HomeScreen(
             BigEmblem()
             Spacer(Modifier.height(18.dp))
 
-
+//            Text(
+//                text = "Phoenix Rigging",
+//                color = OnDark,
+//                fontSize = 28.sp,
+//                fontWeight = FontWeight.ExtraBold
+//            )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Professional rigging equipment management\nsystem",
