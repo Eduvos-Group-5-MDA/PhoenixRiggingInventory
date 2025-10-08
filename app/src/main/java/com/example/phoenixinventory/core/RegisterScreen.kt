@@ -21,24 +21,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.input.KeyboardType
 import java.util.Locale
 
-
-/* ---------- Palette (same as Home/Login) ---------- */
+/* ---------- Palette ---------- */
 private val Carbon = Color(0xFF0E1116)
 private val Charcoal = Color(0xFF151A21)
 private val CardDark = Color(0xFF1A2028)
@@ -65,9 +62,10 @@ fun RegisterScreen(
     var last by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf(UserRole.Guest) }
+    var idNumber by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf<UserRole?>(null) } // no default selection
     var company by remember { mutableStateOf("") }
-    var license by remember { mutableStateOf("") }
+    var hasDriverLicense by remember { mutableStateOf<Boolean?>(null) }
     var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var showPwd by remember { mutableStateOf(false) }
@@ -88,7 +86,6 @@ fun RegisterScreen(
         lastErr = if (last.isBlank()) "Required" else null
         emailErr = if (email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
             "Enter a valid email" else null
-        // very light phone pattern; keep UX friendly
         phoneErr = if (phone.isBlank() || phone.filter(Char::isDigit).length < 7) "Enter a valid phone" else null
         pwdErr = passwordError(password)
         confirmErr = if (confirm != password) "Passwords do not match" else null
@@ -206,6 +203,18 @@ fun RegisterScreen(
 
                     Spacer(Modifier.height(12.dp))
 
+                    /* ID Number */
+                    LabeledField(
+                        label = "ID Number",
+                        value = idNumber,
+                        onValueChange = { idNumber = it.filter { c -> c.isDigit() }.take(13) },
+                        placeholder = "Enter your South African ID number",
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboard = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
                     /* Role */
                     Column(Modifier.fillMaxWidth()) {
                         Text("Role", color = OnDark, fontWeight = FontWeight.SemiBold)
@@ -213,25 +222,53 @@ fun RegisterScreen(
                         RoleRadio(role = role, onRoleChange = { role = it })
                     }
 
+                    /* Show company name only when Guest selected */
+                    if (role == UserRole.Guest) {
+                        Spacer(Modifier.height(12.dp))
+                        LabeledField(
+                            label = "Company Name",
+                            value = company,
+                            onValueChange = { company = it },
+                            placeholder = "Your company (optional)",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                     Spacer(Modifier.height(12.dp))
 
-                    LabeledField(
-                        label = "Company Name",
-                        value = company,
-                        onValueChange = { company = it },
-                        placeholder = "Your company (optional)",
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    /* Driver License only for Employees */
+                    if (role == UserRole.Employee) {
+                        Text("Do you have a valid Driver’s License?", color = OnDark, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable { hasDriverLicense = true }
+                            ) {
+                                RadioButton(
+                                    selected = hasDriverLicense == true,
+                                    onClick = { hasDriverLicense = true },
+                                    colors = RadioButtonDefaults.colors(selectedColor = OnDark, unselectedColor = Muted)
+                                )
+                                Text("Yes", color = OnDark, fontSize = 16.sp)
+                            }
 
-                    Spacer(Modifier.height(12.dp))
-
-                    LabeledField(
-                        label = "Employee / Driver's License",
-                        value = license,
-                        onValueChange = { license = it.uppercase(Locale.getDefault()) },
-                        placeholder = "ID or license number (optional)",
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable { hasDriverLicense = false }
+                            ) {
+                                RadioButton(
+                                    selected = hasDriverLicense == false,
+                                    onClick = { hasDriverLicense = false },
+                                    colors = RadioButtonDefaults.colors(selectedColor = OnDark, unselectedColor = Muted)
+                                )
+                                Text("No", color = OnDark, fontSize = 16.sp)
+                            }
+                        }
+                    }
 
                     Spacer(Modifier.height(12.dp))
 
@@ -273,21 +310,35 @@ fun RegisterScreen(
                         Spacer(Modifier.width(8.dp))
                         val termsText = buildAnnotatedString {
                             append("I accept the ")
-                            pushStyle(SpanStyle(color = OnDark, fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline))
+                            pushStyle(
+                                SpanStyle(
+                                    color = OnDark,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textDecoration = TextDecoration.Underline
+                                )
+                            )
                             append("Terms & Privacy")
                             pop()
                         }
                         Text(termsText, color = Muted)
                     }
                     if (termsErr != null) {
-                        Text(termsErr!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start))
+                        Text(
+                            termsErr!!,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp,
+                            modifier = Modifier.align(Alignment.Start)
+                        )
                     }
 
                     Spacer(Modifier.height(18.dp))
 
                     Button(
                         onClick = {
-                            if (validate()) {
+                            if (role == null) {
+                                Toast.makeText(ctx, "Please select a role before registering", Toast.LENGTH_SHORT)
+                                    .show()
+                            } else if (validate()) {
                                 Toast.makeText(ctx, "Registered (demo)", Toast.LENGTH_SHORT).show()
                                 onRegistered()
                             }
@@ -315,8 +366,7 @@ fun RegisterScreen(
     }
 }
 
-/* ---------- Reusable pieces ---------- */
-
+/* ---------- Reusable Components ---------- */
 @Composable
 private fun LabeledField(
     label: String,
@@ -340,9 +390,11 @@ private fun LabeledField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = PrimaryContainer,
             unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
+            errorBorderColor = MaterialTheme.colorScheme.error,
             cursorColor = OnDark,
             focusedTextColor = OnDark,
             unfocusedTextColor = OnDark,
+            errorTextColor = OnDark,
             focusedPlaceholderColor = Muted,
             unfocusedPlaceholderColor = Muted
         ),
@@ -384,11 +436,10 @@ private fun PasswordField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = PrimaryContainer,
             unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
+            errorBorderColor = MaterialTheme.colorScheme.error,
             cursorColor = OnDark,
             focusedTextColor = OnDark,
-            unfocusedTextColor = OnDark,
-            focusedPlaceholderColor = Muted,
-            unfocusedPlaceholderColor = Muted
+            unfocusedTextColor = OnDark
         ),
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
@@ -398,38 +449,46 @@ private fun PasswordField(
 
 @Composable
 private fun RoleRadio(
-    role: UserRole,
+    role: UserRole?,
     onRoleChange: (UserRole) -> Unit
 ) {
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onRoleChange(UserRole.Guest) }
+        ) {
             RadioButton(
                 selected = role == UserRole.Guest,
                 onClick = { onRoleChange(UserRole.Guest) },
-                colors = RadioButtonDefaults.colors(
-                    selectedColor = OnDark, unselectedColor = Muted
-                )
+                colors = RadioButtonDefaults.colors(selectedColor = OnDark, unselectedColor = Muted)
             )
-            Text("Guest", color = OnDark)
+            Spacer(Modifier.width(8.dp))
+            Text("Guest", color = OnDark, fontSize = 16.sp)
         }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 28.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onRoleChange(UserRole.Employee) }
         ) {
             RadioButton(
                 selected = role == UserRole.Employee,
                 onClick = { onRoleChange(UserRole.Employee) },
-                colors = RadioButtonDefaults.colors(
-                    selectedColor = OnDark, unselectedColor = Muted
-                )
+                colors = RadioButtonDefaults.colors(selectedColor = OnDark, unselectedColor = Muted)
             )
-            Text("Employee", color = OnDark)
+            Spacer(Modifier.width(8.dp))
+            Text("Employee", color = OnDark, fontSize = 16.sp)
         }
     }
 }
 
 /* ---------- Helpers ---------- */
-
 private fun String.capitalizeWords(): String =
     split(" ").joinToString(" ") { it.lowercase().replaceFirstChar { c -> c.titlecase() } }
 
@@ -445,7 +504,10 @@ private fun PasswordStrengthIndicator(password: String) {
         progress = { ((strength.ordinal + 1) / 3f) },
         color = color,
         trackColor = color.copy(alpha = 0.2f),
-        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(8.dp))
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+            .clip(RoundedCornerShape(8.dp))
     )
     Spacer(Modifier.height(4.dp))
     Text("Password strength: $label", color = Muted, fontSize = 12.sp)
@@ -464,20 +526,12 @@ private fun estimateStrength(pwd: String): PwdStrength {
 }
 
 private fun passwordError(pwd: String): String? =
-    when {
-        pwd.length < 6 -> "Min 6 characters"
-        else -> null
-    }
+    if (pwd.length < 6) "Min 6 characters" else null
 
-/* ---------- Preview ---------- */
 @Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
 @Composable
 private fun PreviewRegister() {
     MaterialTheme {
-        RegisterScreen(
-            onBack = {},
-            onRegistered = {},
-            onGoToLogin = {}
-        )
+        RegisterScreen(onBack = {}, onRegistered = {}, onGoToLogin = {})
     }
 }

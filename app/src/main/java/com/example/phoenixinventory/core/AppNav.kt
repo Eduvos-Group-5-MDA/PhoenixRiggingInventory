@@ -30,7 +30,7 @@ fun AppNavHost() {
 
         composable(Dest.LOGIN) {
             LoginScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.HOME) },
                 onLoginSuccess = {
                     // GO TO DASHBOARD (do NOT pop back to HOME)
                     nav.navigate(Dest.DASHBOARD) {
@@ -45,7 +45,7 @@ fun AppNavHost() {
 
         composable(Dest.REGISTER) {
             RegisterScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.HOME) },
                 onRegistered = { nav.popBackStack(Dest.HOME, inclusive = false) },
                 onGoToLogin = { nav.navigate(Dest.LOGIN) }
             )
