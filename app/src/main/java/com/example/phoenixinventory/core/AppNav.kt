@@ -78,11 +78,10 @@ fun AppNavHost() {
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onViewAllItems = { /* TODO */ },
-                onCheckedIn = { /* TODO */ },
-                onCheckedOut = { /* TODO */ },
-                onManageItem = { nav.navigate(Dest.ADD_ITEM) }, // ✅ goes to Add Item
-                onRemoveItem = { /* TODO */ }
+                onViewAllItems = { nav.navigate(Dest.VIEW_ALL_ITEMS) },
+                onCheckedOut = { nav.navigate(Dest.CHECKED_OUT_ITEMS) },
+                onManageItem = { nav.navigate(Dest.ADD_ITEM) },
+                onManageUsers = { nav.navigate(Dest.MANAGE_USERS) }
             )
         }
 

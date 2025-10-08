@@ -51,8 +51,10 @@ fun DashboardScreen(
     onViewAllItems: () -> Unit = {},
     onCheckedIn: () -> Unit = {},
     onCheckedOut: () -> Unit = {},
+    onCheckIn: () -> Unit = {},
+    onCheckOut: () -> Unit = {},
     onManageItem: () -> Unit = {},
-    onRemoveItem: () -> Unit = {}
+    onManageUsers: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     Box(
@@ -243,34 +245,50 @@ fun DashboardScreen(
 
             ActionRow(
                 title = "Checked Out Items",
-                subtitle = "View all items that have been checked out.",
-                icon = Icons.Outlined.CheckCircle,
+                subtitle = "View all items currently checked out,",
+                icon = Icons.Outlined.Assignment,
                 iconBg = Color(0xFF17C964),
                 onClick = onCheckedOut
             )
 
             ActionRow(
                 title = "Checked In Items",
-                subtitle = "View all items that have not been checked .",
-                icon = Icons.Outlined.CheckCircle,
+                subtitle = "View all items currently not checked out,",
+                icon = Icons.Outlined.Assignment,
                 iconBg = Color(0xFF17C964),
-                onClick = onCheckedOut
+                onClick = onCheckedIn
             )
 
             ActionRow(
-                title = "Manage Items",
-                subtitle = "Add, Remove, Edit items.",
+                title = "Manage Item",
+                subtitle = "Add, edit or delete item,",
                 icon = Icons.Outlined.Add,
                 iconBg = Color(0xFF8B5CF6),
                 onClick = onManageItem
+            )
+
+            ActionRow(
+                title = "Check Out Item",
+                subtitle = "Check out an item,",
+                icon = Icons.Outlined.Assignment,
+                iconBg = Color(0xFF17C964),
+                onClick = onCheckOut
             )
 
             ActionRow(
                 title = "Check In Item",
-                subtitle = "Check in an item that has been checked out.",
-                icon = Icons.Outlined.Add,
-                iconBg = Color(0xFF8B5CF6),
-                onClick = onManageItem
+                subtitle = "Check in an item that you currently have checked out,",
+                icon = Icons.Outlined.Assignment,
+                iconBg = Color(0xFF17C964),
+                onClick = onCheckIn
+            )
+
+            ActionRow(
+                title = "Manage Users",
+                subtitle = "View and manage users",
+                icon = Icons.Outlined.Group,
+                iconBg = Color(0xFFF5A524),
+                onClick = onManageUsers
             )
 
             ActionRow(
