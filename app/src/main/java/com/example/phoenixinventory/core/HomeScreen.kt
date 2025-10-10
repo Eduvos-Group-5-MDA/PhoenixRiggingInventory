@@ -34,6 +34,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.example.phoenixinventory.R
+import androidx.compose.ui.text.style.TextOverflow
+
 /* -------------------- Palette (dark) -------------------- */
 private val Carbon = Color(0xFF0E1116)
 private val Charcoal = Color(0xFF151A21)
@@ -65,6 +67,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .align(Alignment.TopCenter)
                 .clip(RoundedCornerShape(28.dp))
                 .background(CardDark)
@@ -76,12 +79,7 @@ fun HomeScreen(
             BigEmblem()
             Spacer(Modifier.height(18.dp))
 
-//            Text(
-//                text = "Phoenix Rigging",
-//                color = OnDark,
-//                fontSize = 28.sp,
-//                fontWeight = FontWeight.ExtraBold
-//            )
+
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Professional rigging equipment management\nsystem",
@@ -202,7 +200,7 @@ private fun BigEmblem() {
 private fun FeatureBlocksAdaptive() {
     LazyVerticalGrid(
         // min 160.dp per tile; grid adapts to available width
-        columns = GridCells.Adaptive(minSize = 160.dp),
+        columns = GridCells.Adaptive(minSize = 175.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier
@@ -224,11 +222,14 @@ private fun InfoBlock(
 ) {
     // Not clickable by design
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(20.dp),
         color = Charcoal,
         tonalElevation = 2.dp,
         shadowElevation = 2.dp,
-        modifier = modifier.height(110.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight() // 👈 This makes it fill vertically
+            .padding(top = 8.dp)
     ) {
         Row(
             modifier = Modifier
@@ -249,8 +250,11 @@ private fun InfoBlock(
             Text(
                 text = title,
                 color = OnDark,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,                       // 👈 force a single line
+                overflow = TextOverflow.Ellipsis,   // 👈 avoid wrapping
+                modifier = Modifier.weight(1f)      // 👈 give the text the remaining row width
             )
         }
     }

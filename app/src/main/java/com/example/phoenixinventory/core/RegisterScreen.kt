@@ -155,27 +155,27 @@ fun RegisterScreen(
 
                     Spacer(Modifier.height(18.dp))
 
-                    /* Name row */
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        LabeledField(
-                            label = "Name",
-                            value = first,
-                            onValueChange = { first = it.capitalizeWords() },
-                            placeholder = "First name",
-                            error = firstErr,
-                            keyboard = KeyboardOptions(imeAction = ImeAction.Next),
-                            modifier = Modifier.weight(1f)
-                        )
-                        LabeledField(
-                            label = "Surname",
-                            value = last,
-                            onValueChange = { last = it.capitalizeWords() },
-                            placeholder = "Last name",
-                            error = lastErr,
-                            keyboard = KeyboardOptions(imeAction = ImeAction.Next),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    LabeledField(
+                        label = "Name",
+                        value = first,
+                        onValueChange = { first = it.capitalizeWords() },
+                        placeholder = "First name",
+                        error = firstErr,
+                        keyboard = KeyboardOptions(imeAction = ImeAction.Next),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    LabeledField(
+                        label = "Surname",
+                        value = last,
+                        onValueChange = { last = it.capitalizeWords() },
+                        placeholder = "Last name",
+                        error = lastErr,
+                        keyboard = KeyboardOptions(imeAction = ImeAction.Next),
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     Spacer(Modifier.height(12.dp))
 
@@ -216,8 +216,16 @@ fun RegisterScreen(
                     Spacer(Modifier.height(12.dp))
 
                     /* Role */
-                    Column(Modifier.fillMaxWidth()) {
-                        Text("Role", color = OnDark, fontWeight = FontWeight.SemiBold)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "Role",
+                            color = OnDark,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
                         Spacer(Modifier.height(8.dp))
                         RoleRadio(role = role, onRoleChange = { role = it })
                     }
