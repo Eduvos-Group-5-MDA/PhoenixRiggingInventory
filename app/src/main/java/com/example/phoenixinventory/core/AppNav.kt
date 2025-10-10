@@ -1,11 +1,9 @@
 package com.example.phoenixinventory.core
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.phoenixinventory.core.HomeScreen
 
 object Dest {
     const val HOME = "home"
@@ -14,15 +12,19 @@ object Dest {
     const val DASHBOARD = "dashboard"
     const val ADD_ITEM = "add_item"
     const val VIEW_ALL_ITEMS = "view_all_items"
+    const val VIEW_ALL_ITEMS_EDIT = "view_all_items_edit"
+    const val VIEW_ALL_ITEMS_DELETE = "view_all_items_delete"
     const val CHECKED_OUT_ITEMS = "checked_out_items"
     const val ITEM_DETAIL = "item_detail"
     const val CHECK_IN_OUT = "check_in_out"
     const val MANAGE_USERS = "manage_users"
+    const val MANAGE_ITEMS = "manage_items"
 }
 
 @Composable
 fun AppNavHost() {
     val nav = rememberNavController()
+
     NavHost(navController = nav, startDestination = Dest.HOME) {
 
         composable(Dest.HOME) {
@@ -31,7 +33,6 @@ fun AppNavHost() {
                 onRegister = { nav.navigate(Dest.REGISTER) }
             )
         }
-
 
         composable(Dest.LOGIN) {
             LoginScreen(
@@ -53,7 +54,7 @@ fun AppNavHost() {
                 onGoToLogin = { nav.navigate(Dest.LOGIN) }
             )
         }
-//testing
+
         composable(Dest.DASHBOARD) {
             val totalItems = com.example.phoenixinventory.data.DataRepository.getAllItems().size
             val checkedOut = com.example.phoenixinventory.data.DataRepository.getCheckedOutCount()
@@ -64,6 +65,7 @@ fun AppNavHost() {
             val currentUser = com.example.phoenixinventory.data.DataRepository.getCurrentUser()
 
             DashboardScreen(
+                navController = nav, // ✅ pass NavHostController
                 userName = currentUser.name,
                 email = currentUser.email,
                 role = currentUser.role,
@@ -80,8 +82,8 @@ fun AppNavHost() {
                 },
                 onViewAllItems = { nav.navigate(Dest.VIEW_ALL_ITEMS) },
                 onCheckedOut = { nav.navigate(Dest.CHECKED_OUT_ITEMS) },
-                onManageItem = { nav.navigate(Dest.ADD_ITEM) },
-                onManageUsers = { nav.navigate(Dest.MANAGE_USERS) }
+                onManageUsers = { nav.navigate(Dest.MANAGE_USERS) },
+                onManageItem = { nav.navigate(Dest.MANAGE_ITEMS) }
             )
         }
 
@@ -145,6 +147,16 @@ fun AppNavHost() {
 
         composable(Dest.MANAGE_USERS) {
             ManageUsersScreen(
+                onBack = { nav.popBackStack() }
+            )
+        }
+
+        composable(Dest.MANAGE_ITEMS) {
+            // Navigate to Add/Edit/Delete from here
+            ManageScreen(
+                onAddClick = { nav.navigate(Dest.ADD_ITEM) },
+                onEditClick = { nav.navigate(Dest.VIEW_ALL_ITEMS) },
+                onDeleteClick = { nav.navigate(Dest.VIEW_ALL_ITEMS) },
                 onBack = { nav.popBackStack() }
             )
         }

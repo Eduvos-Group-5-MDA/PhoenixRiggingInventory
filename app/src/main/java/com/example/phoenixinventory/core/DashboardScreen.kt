@@ -24,6 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 
 /* ---------- Palette (same as other screens) ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -38,6 +40,7 @@ private val PrimaryContainer = Color(0xFF121729)
 /* ---------- Screen ---------- */
 @Composable
 fun DashboardScreen(
+    navController: NavHostController,              // 👈 Added for navigation
     userName: String,
     email: String,
     role: String,
@@ -239,47 +242,59 @@ fun DashboardScreen(
                 title = "View All Items",
                 subtitle = "Browse all items.",
                 icon = Icons.Outlined.FormatListBulleted,
-                iconBg = Color(0xFF0A6CFF),
+                iconBg = Color(0xFFFF6F00),
+                onClick = onViewAllItems
+            )
+
+            ActionRow(
+                title = "My Checked Out Items",
+                subtitle = "View all of the items that you currently have checked out.",
+                icon = Icons.Outlined.Inventory2,
+                iconBg = Color(0xFFFF6F00),
                 onClick = onViewAllItems
             )
 
             ActionRow(
                 title = "Checked Out Items",
                 subtitle = "View all items currently checked out,",
-                icon = Icons.Outlined.Assignment,
-                iconBg = Color(0xFF17C964),
+                icon = Icons.Outlined.ArrowCircleUp,
+                iconBg = Color(0xFFFF6F00),
                 onClick = onCheckedOut
             )
 
             ActionRow(
                 title = "Checked In Items",
                 subtitle = "View all items currently not checked out,",
-                icon = Icons.Outlined.Assignment,
-                iconBg = Color(0xFF17C964),
+                icon = Icons.Outlined.ArrowCircleDown,
+                iconBg = Color(0xFFFF6F00),
                 onClick = onCheckedIn
             )
 
+            // 🔗 Navigate to Manage screen
             ActionRow(
                 title = "Manage Item",
                 subtitle = "Add, edit or delete item,",
-                icon = Icons.Outlined.Add,
-                iconBg = Color(0xFF8B5CF6),
-                onClick = onManageItem
+                icon = Icons.Outlined.Build,
+                iconBg = Color(0xFFFF6F00),
+                onClick = {
+                    navController.navigate(Dest.MANAGE_ITEMS)
+                    onManageItem()
+                }
             )
 
             ActionRow(
                 title = "Check Out Item",
                 subtitle = "Check out an item,",
-                icon = Icons.Outlined.Assignment,
-                iconBg = Color(0xFF17C964),
+                icon = Icons.Outlined.FileUpload,
+                iconBg = Color(0xFFFF6F00),
                 onClick = onCheckOut
             )
 
             ActionRow(
                 title = "Check In Item",
                 subtitle = "Check in an item that you currently have checked out,",
-                icon = Icons.Outlined.Assignment,
-                iconBg = Color(0xFF17C964),
+                icon = Icons.Outlined.FileDownload,
+                iconBg = Color(0xFFFF6F00),
                 onClick = onCheckIn
             )
 
@@ -287,26 +302,9 @@ fun DashboardScreen(
                 title = "Manage Users",
                 subtitle = "View and manage users",
                 icon = Icons.Outlined.Group,
-                iconBg = Color(0xFFF5A524),
+                iconBg = Color(0xFFFF6F00),
                 onClick = onManageUsers
             )
-
-            ActionRow(
-                title = "Check Out Item",
-                subtitle = "Check out an item.",
-                icon = Icons.Outlined.Add,
-                iconBg = Color(0xFF8B5CF6),
-                onClick = onManageItem
-            )
-
-            ActionRow(
-                title = "Manage User",
-                subtitle = "Manage or edit an employee or guest account.",
-                icon = Icons.Outlined.Add,
-                iconBg = Color(0xFF8B5CF6),
-                onClick = onManageItem
-            )
-
 
             Spacer(Modifier.height(24.dp))
         }
@@ -431,8 +429,10 @@ private fun ActionRow(
 @Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
 @Composable
 private fun PreviewDashboard() {
+    val nav = rememberNavController()
     MaterialTheme {
         DashboardScreen(
+            navController = nav,                 // 👈 preview-safe nav controller
             userName = "John Doe",
             email = "john.doe@gmail.com",
             role = "Employee",
