@@ -1,9 +1,0 @@
-View: All front-end related stuff
-
-Network: Do not touch
-
-Controller: Backend (Validation etc.)
-
-Model: Backend + Partially PHP-related
-
--Jako
