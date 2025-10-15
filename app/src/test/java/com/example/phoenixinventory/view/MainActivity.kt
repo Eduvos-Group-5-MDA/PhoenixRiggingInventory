@@ -5,12 +5,8 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapp.controller.AssetController
 import com.example.myapp.controller.UserController
-import com.example.myapp.model.Asset
-import com.example.myapp.model.Callbacks
-import com.example.myapp.model.User
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var userController: UserController
     private lateinit var assetController: AssetController
 

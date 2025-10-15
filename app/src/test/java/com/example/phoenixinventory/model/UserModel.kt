@@ -10,23 +10,31 @@ import org.json.JSONObject
 
 class UserModel(private val context: Context) {
 
+//UserModel.kt
     companion object {
-        private const val BASE_URL = "" //** URL NEEDED
+        private const val BASE_URL = "http://pheonixrigging.infinityfree.me/general.php?TABLE=Users"
     }
 
-    // READ all users (GET)
+    // READ all users (GET) √
     fun getAllUsers(callback: ResultCallback<List<User>>) {
-        val url = "$BASE_URL?CRUD='READ'"
+        val url = "$BASE_URL&CRUD=READ"
         val req = JsonArrayRequest(Request.Method.GET, url, null,
             { response: JSONArray ->
                 val users = mutableListOf<User>()	//Creates list of User instances
                 for (i in 0 until response.length()) {
                     val obj = response.getJSONObject(i)
                     val user = User(		//Builds User instances with received DB data.
-                        userId = obj.optInt("id", 0),
-                        name = obj.optString("name"),
-                        email = obj.optString("email"),
-                        role = obj.optString("role", null)
+
+                        userId = obj.optInt("User_ID"),
+			name = obj.optString("Name"),
+			surname = obj.optString("Surname"),
+                        email = obj.optString("Email"),
+			phoneNum = obj.optString("Phone_number"),
+			ZAID= obj.optString("ID_number"),
+                        role = obj.optString("Role")
+			driversLicense = obj.optBoolean("Drivers_license"), //obj.optBoolean
+			password = obj.optString("Password")
+
                     )
                     users.add(user)
                 }
@@ -39,21 +47,26 @@ class UserModel(private val context: Context) {
         VolleySingleton.addToQueue(context, req)
     }
 
-    // READ single user by id (GET)
+    // READ single user by id (GET) √
     fun getUserById(userId: Int, callback: ResultCallback<User>) {
-        val url = "$BASE_URL?CRUD='READ'"
+        val url = "$BASE_URL&CRUD=READ"
 	val payload = JSONObject().apply {
-            put("user_id", userId)
+            put("User_ID", userId)
         }
         val req = JsonObjectRequest(Request.Method.GET, url, payload,
             { obj: JSONObject ->
                 val user = User(		//Builds the User instance with received DB data
-                    userId = obj.optInt("id", 0),
-                    name = obj.optString("name"),
-                    email = obj.optString("email"),
-                    role = obj.optString("role", null)
+                        userId = obj.optInt("User_ID"),
+			name = obj.optString("Name"),
+			surname = obj.optString("Surname"),
+                        email = obj.optString("Email"),
+			phoneNum = obj.optString("Phone_number"),
+			ZAID = obj.optString("ID_number"),
+                        role = obj.optString("Role")
+			driversLicense = obj.optBoolean("Drivers_license"),
+			password = obj.optString("Password")
                 )
-                callback.onSuccess(user)
+                callback.onSuccess(user) //successfully receives something from the website; whether the data is correct or not
             },
             { err ->
                 callback.onError(err.message ?: "Network error")
@@ -62,21 +75,39 @@ class UserModel(private val context: Context) {
         VolleySingleton.addToQueue(context, req)
     }
 
-    // CREATE user (POST)
+    // CREATE user (POST) √
     fun createUser(user: User, callback: ResultCallback<User>) {
-        val url = "$BASE_URL?CRUD='CREATE'"
+        val url = "$BASE_URL&CRUD=CREATE"
         val payload = JSONObject().apply { //Creating JSON object to send to PHP
-            put("user_name", user.name) //note formatting
-            put("email", user.email)
-            if (user.role != null) put("role", user.role)
+
+		put("Name", user.name)
+		put("Surname", user.surname)
+		put("Email", user.email)
+		put("Phone_number",user.phoneNum)
+		put("ID_number", user.ZAID)
+		put("Role", user.role)
+		//put("Company", user.company)
+		put("Drivers_license", user.driversLicense)
+		put("Password", user.password) //no comma trailing between statements in kotlin
+
         }
         val req = JsonObjectRequest(Request.Method.POST, url, payload,
-            { resp: JSONObject ->
+            { obj: JSONObject ->
                 val created = User(
-                    userId = resp.optInt("id", 0),
-                    name = resp.optString("name"),
-                    email = resp.optString("email"),
-                    role = resp.optString("role", null)		//Acknowledge. If not received; error
+
+                        userId = obj.optInt("User_ID"),
+			name = obj.optString("Name"),
+			surname = obj.optString("Surname"),
+                        email = obj.optString("Email"),
+			phoneNum = obj.optString("Phone_number"),
+			ZAID = obj.optString("ID_number"),
+                        role = obj.optString("Role")
+			//company = obj.optString("Company")
+			driversLicense = obj.optBoolean("Drivers_license"),
+			password = obj.optString("Password")
+
+			//Acknowledge. If not received; error
+
                 )
                 callback.onSuccess(created)
             },
@@ -85,14 +116,21 @@ class UserModel(private val context: Context) {
         VolleySingleton.addToQueue(context, req)
     }
 
-    // UPDATE single user by id (POST)
+    // UPDATE single user by id (POST) √
     fun updateUser(user: User, callback: SimpleCallback) {
-        val url = "$BASE_URL?CRUD='UPDATE'"
-        val payload = JSONObject().apply {	//Creating JSON object to send to PHP
-            put("user_id", user.userId) //note formatting
-            put("name", user.name)
-            put("email", user.email)
-            if (user.role != null) put("role", user.role)
+        val url = "$BASE_URL&CRUD=UPDATE"
+        val payload = JSONObject().apply {//Creating JSON object to send to PHP
+
+		put("Name", user.name)
+		put("Surname", user.surname)
+		put("Email", user.email)
+		put("Phone_number",user.phoneNum)
+		put("ID_number", user.ZAID)
+		put("Role", user.role)
+		//put("Company", user.company)
+		put("Drivers_license", user.driversLicense)
+		put("Password", user.password)
+
         }
         val req = JsonObjectRequest(Request.Method.POST, url, payload,	//Acknowledge. If not received; error
             { _ -> callback.onSuccess() },
@@ -101,11 +139,11 @@ class UserModel(private val context: Context) {
         VolleySingleton.addToQueue(context, req)
     }
 
-    // DELETE single user by id (POST)
+    // DELETE single user by id (POST) √
     fun deleteUser(userId: Int, callback: SimpleCallback) {
-        val url = "$BASE_URL?CRUD='DELETE'"
+        val url = "$BASE_URL&CRUD=DELETE"
         val payload = JSONObject().apply {
-            put("user_id", userId)
+            put("User_ID", userId)
         }
         val req = JsonObjectRequest(Request.Method.POST, url, payload,
             { _ -> callback.onSuccess() },

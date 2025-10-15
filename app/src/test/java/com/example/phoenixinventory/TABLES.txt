@@ -1,0 +1,49 @@
+TABLES
+
+tblCategories
+	category_id [PK]
+	name
+tblLocations
+	location_id [PK]
+	name
+	description
+tblRoles 
+	role_id [PK] | 0, 1, 2, 3 ?
+	name | Owner/Manager, Employee, Admin, Guest/Customer
+
+
+tblAssets
+	asset_id [PK]
+	asset_code
+	name
+	category_id [FK]
+	location_id [FK]
+	condition | good, bad, broken
+	status | storage, in transit
+	requires_approval | true/false
+	is_permanent | true/false
+	unit_value
+	created_at
+	updated_at
+	deleted_at (??)
+
+tblApproval_requests
+	approval_id [PK]
+	asset_id [FK]
+	requester_id [FK] | user_id from tblUsers
+	approver_id [FK] | user_id from tblUsers
+	status*
+	reason
+	requested_at
+	decided_at
+
+tblTransactions
+	transaction_id [PK]
+	asset_id [FK]
+	user_id [FK]
+	approval_id [FK] | from tblApproval_requests
+	transaction_type
+	notes
+	photo_url | allow NULL for now
+	geo_location (??)
+	transaction_time
