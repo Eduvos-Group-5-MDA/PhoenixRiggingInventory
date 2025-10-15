@@ -34,15 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
-
-/* ---------- Palette ---------- */
-private val Carbon = Color(0xFF0E1116)
-private val Charcoal = Color(0xFF151A21)
-private val CardDark = Color(0xFF1A2028)
-private val OnDark = Color(0xFFE7EBF2)
-private val Muted = Color(0xFFBFC8D4)
-private val Primary = Color(0xFF0A0C17)
-private val PrimaryContainer = Color(0xFF121729)
+import com.example.phoenixinventory.ui.theme.AppColors
 
 /* ---------- Models ---------- */
 enum class UserRole { Guest, Employee }
@@ -55,6 +47,13 @@ fun RegisterScreen(
     onRegistered: () -> Unit,
     onGoToLogin: () -> Unit
 ) {
+    val backgroundColor = AppColors.Carbon
+    val surfaceColor = AppColors.Charcoal
+    val cardColor = AppColors.CardDark
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryColor = AppColors.Primary
+    val primaryContainerColor = AppColors.PrimaryContainer
     val ctx = LocalContext.current
 
     // Inputs
@@ -97,7 +96,7 @@ fun RegisterScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon)))
+            .background(Brush.verticalGradient(listOf(backgroundColor, surfaceColor, backgroundColor)))
     ) {
         Column(
             modifier = Modifier
@@ -107,7 +106,7 @@ fun RegisterScreen(
                 .widthIn(max = 640.dp)
                 .align(Alignment.TopCenter)
                 .clip(RoundedCornerShape(28.dp))
-                .background(CardDark)
+                .background(cardColor)
                 .padding(16.dp)
         ) {
             /* ---------- Top bar ---------- */
@@ -118,24 +117,24 @@ fun RegisterScreen(
                     .padding(top = 4.dp, bottom = 8.dp)
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = OnDark)
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = onSurfaceColor)
                 }
                 Spacer(Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(PrimaryContainer),
+                        .background(primaryContainerColor),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Outlined.Build, null, tint = OnDark) }
+                ) { Icon(Icons.Outlined.Build, null, tint = onSurfaceColor) }
                 Spacer(Modifier.width(8.dp))
-                Text("Register", color = OnDark, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text("Register", color = onSurfaceColor, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
 
             /* ---------- Card ---------- */
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Charcoal,
+                color = surfaceColor,
                 tonalElevation = 2.dp,
                 shadowElevation = 2.dp,
                 modifier = Modifier
@@ -146,11 +145,11 @@ fun RegisterScreen(
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Create Account", color = OnDark, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("Create Account", color = onSurfaceColor, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "Join Phoenix Rigging management\nsystem",
-                        color = Muted, fontSize = 14.sp, textAlign = TextAlign.Center, lineHeight = 18.sp
+                        color = mutedColor, fontSize = 14.sp, textAlign = TextAlign.Center, lineHeight = 18.sp
                     )
 
                     Spacer(Modifier.height(18.dp))
@@ -222,7 +221,7 @@ fun RegisterScreen(
                     ) {
                         Text(
                             "Role",
-                            color = OnDark,
+                            color = onSurfaceColor,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
                         )
@@ -246,7 +245,7 @@ fun RegisterScreen(
 
                     /* Driver License only for Employees */
                     if (role == UserRole.Employee) {
-                        Text("Do you have a valid Driver’s License?", color = OnDark, fontWeight = FontWeight.SemiBold)
+                        Text("Do you have a valid Driver's License?", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(8.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -259,9 +258,9 @@ fun RegisterScreen(
                                 RadioButton(
                                     selected = hasDriverLicense == true,
                                     onClick = { hasDriverLicense = true },
-                                    colors = RadioButtonDefaults.colors(selectedColor = OnDark, unselectedColor = Muted)
+                                    colors = RadioButtonDefaults.colors(selectedColor = onSurfaceColor, unselectedColor = mutedColor)
                                 )
-                                Text("Yes", color = OnDark, fontSize = 16.sp)
+                                Text("Yes", color = onSurfaceColor, fontSize = 16.sp)
                             }
 
                             Row(
@@ -271,9 +270,9 @@ fun RegisterScreen(
                                 RadioButton(
                                     selected = hasDriverLicense == false,
                                     onClick = { hasDriverLicense = false },
-                                    colors = RadioButtonDefaults.colors(selectedColor = OnDark, unselectedColor = Muted)
+                                    colors = RadioButtonDefaults.colors(selectedColor = onSurfaceColor, unselectedColor = mutedColor)
                                 )
-                                Text("No", color = OnDark, fontSize = 16.sp)
+                                Text("No", color = onSurfaceColor, fontSize = 16.sp)
                             }
                         }
                     }
@@ -311,8 +310,8 @@ fun RegisterScreen(
                             checked = acceptTerms,
                             onCheckedChange = { acceptTerms = it },
                             colors = CheckboxDefaults.colors(
-                                checkedColor = OnDark,
-                                uncheckedColor = Muted
+                                checkedColor = onSurfaceColor,
+                                uncheckedColor = mutedColor
                             )
                         )
                         Spacer(Modifier.width(8.dp))
@@ -320,7 +319,7 @@ fun RegisterScreen(
                             append("I accept the ")
                             pushStyle(
                                 SpanStyle(
-                                    color = OnDark,
+                                    color = onSurfaceColor,
                                     fontWeight = FontWeight.SemiBold,
                                     textDecoration = TextDecoration.Underline
                                 )
@@ -328,7 +327,7 @@ fun RegisterScreen(
                             append("Terms & Privacy")
                             pop()
                         }
-                        Text(termsText, color = Muted)
+                        Text(termsText, color = mutedColor)
                     }
                     if (termsErr != null) {
                         Text(
@@ -351,17 +350,17 @@ fun RegisterScreen(
                                 onRegistered()
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = OnDark),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = onSurfaceColor),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth().height(52.dp)
                     ) { Text("Register", fontWeight = FontWeight.SemiBold) }
 
                     Spacer(Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Already have an account? ", color = Muted)
+                        Text("Already have an account? ", color = mutedColor)
                         Text(
                             "Login",
-                            color = OnDark,
+                            color = onSurfaceColor,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.clickable { onGoToLogin() }
                         )
@@ -385,7 +384,10 @@ private fun LabeledField(
     error: String? = null,
     keyboard: KeyboardOptions = KeyboardOptions.Default
 ) {
-    Text(label, color = OnDark, fontWeight = FontWeight.SemiBold)
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryContainerColor = AppColors.PrimaryContainer
+    Text(label, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(6.dp))
     OutlinedTextField(
         value = value,
@@ -396,15 +398,15 @@ private fun LabeledField(
         isError = error != null,
         supportingText = { error?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PrimaryContainer,
-            unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
+            focusedBorderColor = primaryContainerColor,
+            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
             errorBorderColor = MaterialTheme.colorScheme.error,
-            cursorColor = OnDark,
-            focusedTextColor = OnDark,
-            unfocusedTextColor = OnDark,
-            errorTextColor = OnDark,
-            focusedPlaceholderColor = Muted,
-            unfocusedPlaceholderColor = Muted
+            cursorColor = onSurfaceColor,
+            focusedTextColor = onSurfaceColor,
+            unfocusedTextColor = onSurfaceColor,
+            errorTextColor = onSurfaceColor,
+            focusedPlaceholderColor = mutedColor,
+            unfocusedPlaceholderColor = mutedColor
         ),
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
@@ -421,7 +423,10 @@ private fun PasswordField(
     onToggle: () -> Unit,
     error: String? = null
 ) {
-    Text(label, color = OnDark, fontWeight = FontWeight.SemiBold)
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryContainerColor = AppColors.PrimaryContainer
+    Text(label, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(6.dp))
     OutlinedTextField(
         value = value,
@@ -435,19 +440,19 @@ private fun PasswordField(
                 Icon(
                     imageVector = if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                     contentDescription = "Toggle password",
-                    tint = OnDark
+                    tint = onSurfaceColor
                 )
             }
         },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
         supportingText = { error?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PrimaryContainer,
-            unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
+            focusedBorderColor = primaryContainerColor,
+            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
             errorBorderColor = MaterialTheme.colorScheme.error,
-            cursorColor = OnDark,
-            focusedTextColor = OnDark,
-            unfocusedTextColor = OnDark
+            cursorColor = onSurfaceColor,
+            focusedTextColor = onSurfaceColor,
+            unfocusedTextColor = onSurfaceColor
         ),
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
@@ -460,6 +465,8 @@ private fun RoleRadio(
     role: UserRole?,
     onRoleChange: (UserRole) -> Unit
 ) {
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -473,10 +480,10 @@ private fun RoleRadio(
             RadioButton(
                 selected = role == UserRole.Guest,
                 onClick = { onRoleChange(UserRole.Guest) },
-                colors = RadioButtonDefaults.colors(selectedColor = OnDark, unselectedColor = Muted)
+                colors = RadioButtonDefaults.colors(selectedColor = onSurfaceColor, unselectedColor = mutedColor)
             )
             Spacer(Modifier.width(8.dp))
-            Text("Guest", color = OnDark, fontSize = 16.sp)
+            Text("Guest", color = onSurfaceColor, fontSize = 16.sp)
         }
 
         Row(
@@ -488,10 +495,10 @@ private fun RoleRadio(
             RadioButton(
                 selected = role == UserRole.Employee,
                 onClick = { onRoleChange(UserRole.Employee) },
-                colors = RadioButtonDefaults.colors(selectedColor = OnDark, unselectedColor = Muted)
+                colors = RadioButtonDefaults.colors(selectedColor = onSurfaceColor, unselectedColor = mutedColor)
             )
             Spacer(Modifier.width(8.dp))
-            Text("Employee", color = OnDark, fontSize = 16.sp)
+            Text("Employee", color = onSurfaceColor, fontSize = 16.sp)
         }
     }
 }
@@ -502,6 +509,7 @@ private fun String.capitalizeWords(): String =
 
 @Composable
 private fun PasswordStrengthIndicator(password: String) {
+    val mutedColor = AppColors.Muted
     val strength = remember(password) { estimateStrength(password) }
     val (label, color) = when (strength) {
         PwdStrength.Weak -> "Weak" to Color(0xFFFF7A7A)
@@ -518,7 +526,7 @@ private fun PasswordStrengthIndicator(password: String) {
             .clip(RoundedCornerShape(8.dp))
     )
     Spacer(Modifier.height(4.dp))
-    Text("Password strength: $label", color = Muted, fontSize = 12.sp)
+    Text("Password strength: $label", color = mutedColor, fontSize = 12.sp)
 }
 
 private fun estimateStrength(pwd: String): PwdStrength {

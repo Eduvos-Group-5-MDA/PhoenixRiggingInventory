@@ -28,15 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-/* ---------- Palette (same as other screens) ---------- */
-private val Carbon = Color(0xFF0E1116)
-private val Charcoal = Color(0xFF151A21)
-private val CardDark = Color(0xFF1A2028)
-private val OnDark = Color(0xFFE7EBF2)
-private val Muted = Color(0xFFBFC8D4)
-private val Primary = Color(0xFF0A0C17)
-private val PrimaryContainer = Color(0xFF121729)
+import com.example.phoenixinventory.ui.theme.AppColors
 
 /* ---------- Model you can reuse later ---------- */
 data class NewEquipment(
@@ -58,6 +50,13 @@ fun AddItemScreen(
     onSubmit: (NewEquipment) -> Unit,
     onCancel: () -> Unit
 ) {
+    val backgroundColor = AppColors.Carbon
+    val surfaceColor = AppColors.Charcoal
+    val cardColor = AppColors.CardDark
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryColor = AppColors.Primary
+    val primaryContainerColor = AppColors.PrimaryContainer
     val ctx = LocalContext.current
 
     // Form state
@@ -88,7 +87,7 @@ fun AddItemScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon)))
+            .background(Brush.verticalGradient(listOf(backgroundColor, surfaceColor, backgroundColor)))
     ) {
         Column(
             modifier = Modifier
@@ -98,28 +97,28 @@ fun AddItemScreen(
                 .widthIn(max = 720.dp)
                 .align(Alignment.TopCenter)
                 .clip(RoundedCornerShape(28.dp))
-                .background(CardDark)
+                .background(cardColor)
                 .padding(16.dp)
         ) {
 
             /* ---------- Header ---------- */
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = OnDark)
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = onSurfaceColor)
                 }
                 Spacer(Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(PrimaryContainer),
+                        .background(primaryContainerColor),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Outlined.Add, contentDescription = null, tint = OnDark) }
+                ) { Icon(Icons.Outlined.Add, contentDescription = null, tint = onSurfaceColor) }
 
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text("Add Item", color = OnDark, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("Add new equipment", color = Muted, fontSize = 13.sp)
+                    Text("Add Item", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("Add new equipment", color = mutedColor, fontSize = 13.sp)
                 }
             }
 
@@ -127,7 +126,7 @@ fun AddItemScreen(
 
             /* ---------- Card ---------- */
             Surface(
-                color = Charcoal,
+                color = surfaceColor,
                 shape = RoundedCornerShape(20.dp),
                 tonalElevation = 2.dp,
                 shadowElevation = 2.dp,
@@ -136,14 +135,14 @@ fun AddItemScreen(
                 Column(Modifier.padding(16.dp)) {
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Inventory, contentDescription = null, tint = OnDark)
+                        Icon(Icons.Outlined.Inventory, contentDescription = null, tint = onSurfaceColor)
                         Spacer(Modifier.width(8.dp))
-                        Text("New Equipment", color = OnDark, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                        Text("New Equipment", color = onSurfaceColor, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "Fill out the details for the new rigging equipment",
-                        color = Muted,
+                        color = mutedColor,
                         fontSize = 14.sp
                     )
 
@@ -243,7 +242,7 @@ fun AddItemScreen(
                                 onSubmit(item)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = OnDark),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = onSurfaceColor),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -260,7 +259,7 @@ fun AddItemScreen(
                     OutlinedButton(
                         onClick = onCancel,
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = OnDark),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = onSurfaceColor),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
@@ -287,7 +286,10 @@ private fun LabeledField(
     error: String? = null,
     keyboard: KeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
 ) {
-    Text(label, color = OnDark, fontWeight = FontWeight.SemiBold)
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryContainerColor = AppColors.PrimaryContainer
+    Text(label, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(6.dp))
     OutlinedTextField(
         value = value,
@@ -298,13 +300,13 @@ private fun LabeledField(
         supportingText = { error?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
         keyboardOptions = keyboard,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PrimaryContainer,
-            unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
-            cursorColor = OnDark,
-            focusedTextColor = OnDark,
-            unfocusedTextColor = OnDark,
-            focusedPlaceholderColor = Muted,
-            unfocusedPlaceholderColor = Muted
+            focusedBorderColor = primaryContainerColor,
+            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
+            cursorColor = onSurfaceColor,
+            focusedTextColor = onSurfaceColor,
+            unfocusedTextColor = onSurfaceColor,
+            focusedPlaceholderColor = mutedColor,
+            unfocusedPlaceholderColor = mutedColor
         ),
         modifier = modifier.clip(RoundedCornerShape(14.dp))
     )
@@ -318,7 +320,10 @@ private fun LabeledTextArea(
     placeholder: String,
     modifier: Modifier = Modifier
 ) {
-    Text(label, color = OnDark, fontWeight = FontWeight.SemiBold)
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryContainerColor = AppColors.PrimaryContainer
+    Text(label, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(6.dp))
     OutlinedTextField(
         value = value,
@@ -327,13 +332,13 @@ private fun LabeledTextArea(
         minLines = 3,
         placeholder = { Text(placeholder) },
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PrimaryContainer,
-            unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
-            cursorColor = OnDark,
-            focusedTextColor = OnDark,
-            unfocusedTextColor = OnDark,
-            focusedPlaceholderColor = Muted,
-            unfocusedPlaceholderColor = Muted
+            focusedBorderColor = primaryContainerColor,
+            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
+            cursorColor = onSurfaceColor,
+            focusedTextColor = onSurfaceColor,
+            unfocusedTextColor = onSurfaceColor,
+            focusedPlaceholderColor = mutedColor,
+            unfocusedPlaceholderColor = mutedColor
         ),
         modifier = modifier.clip(RoundedCornerShape(14.dp))
     )
@@ -347,8 +352,11 @@ private fun DropdownField(
     selected: String,
     onSelected: (String) -> Unit
 ) {
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryContainerColor = AppColors.PrimaryContainer
     var expanded by remember { mutableStateOf(false) }
-    Text(label, color = OnDark, fontWeight = FontWeight.SemiBold)
+    Text(label, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(6.dp))
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
@@ -362,12 +370,12 @@ private fun DropdownField(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp)),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PrimaryContainer,
-                unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
-                focusedTextColor = OnDark,
-                unfocusedTextColor = OnDark,
-                focusedPlaceholderColor = Muted,
-                unfocusedPlaceholderColor = Muted
+                focusedBorderColor = primaryContainerColor,
+                unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
+                focusedTextColor = onSurfaceColor,
+                unfocusedTextColor = onSurfaceColor,
+                focusedPlaceholderColor = mutedColor,
+                unfocusedPlaceholderColor = mutedColor
             )
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -390,14 +398,16 @@ private fun LabeledCheckbox(
     onCheckedChange: (Boolean) -> Unit,
     text: String
 ) {
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
         Checkbox(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = CheckboxDefaults.colors(checkedColor = OnDark, uncheckedColor = Muted)
+            colors = CheckboxDefaults.colors(checkedColor = onSurfaceColor, uncheckedColor = mutedColor)
         )
         Spacer(Modifier.width(8.dp))
-        Text(text, color = OnDark)
+        Text(text, color = onSurfaceColor)
     }
 }
 

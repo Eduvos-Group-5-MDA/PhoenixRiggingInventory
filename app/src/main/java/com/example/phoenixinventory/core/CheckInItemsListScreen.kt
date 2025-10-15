@@ -20,10 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.CheckedOutItemDetail
 import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CheckedOutItemsScreen(
+fun CheckInItemsListScreen(
     onBack: () -> Unit = {},
     onItemClick: (String) -> Unit = {}
 ) {
@@ -33,18 +34,24 @@ fun CheckedOutItemsScreen(
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
+    val checkInGreen = Color(0xFF17C964)
 
     var searchQuery by remember { mutableStateOf("") }
     var filterDaysOut by remember { mutableStateOf("All") }
 
+    // Get current user and their checked out items
+    val currentUser = remember { DataRepository.getCurrentUser() }
     val allCheckedOutItems = remember { DataRepository.getCheckedOutItems() }
 
-    // Filter items based on search and filter criteria
-    val filteredItems = allCheckedOutItems.filter { detail ->
+    // Filter to only show items checked out by current user
+    val myCheckedOutItems = remember(allCheckedOutItems) {
+        allCheckedOutItems.filter { it.user.id == currentUser.id }
+    }
+
+    val filteredItems = myCheckedOutItems.filter { detail ->
         val matchesSearch = detail.item.name.contains(searchQuery, ignoreCase = true) ||
                 detail.item.serialId.contains(searchQuery, ignoreCase = true) ||
-                detail.item.description.contains(searchQuery, ignoreCase = true) ||
-                detail.user.name.contains(searchQuery, ignoreCase = true)
+                detail.item.description.contains(searchQuery, ignoreCase = true)
 
         val matchesFilter = when (filterDaysOut) {
             "All" -> true
@@ -85,14 +92,14 @@ fun CheckedOutItemsScreen(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(primaryContainerColor),
+                        .background(checkInGreen),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Outlined.Assignment, contentDescription = null, tint = onSurfaceColor) }
+                ) { Icon(Icons.Outlined.FileDownload, contentDescription = null, tint = Color.White) }
 
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Checked Out Items", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("${filteredItems.size} items", color = mutedColor, fontSize = 13.sp)
+                    Text("Check In Item", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("${filteredItems.size} items checked out", color = mutedColor, fontSize = 13.sp)
                 }
             }
 
@@ -102,7 +109,7 @@ fun CheckedOutItemsScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search items or users...", color = mutedColor) },
+                placeholder = { Text("Search items...", color = mutedColor) },
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = onSurfaceColor) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -159,7 +166,7 @@ fun CheckedOutItemsScreen(
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            if (searchQuery.isEmpty() && filterDaysOut == "All") "No items checked out" else "No items found",
+                            if (searchQuery.isEmpty() && filterDaysOut == "All") "No items to check in" else "No items found",
                             color = mutedColor,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
@@ -167,6 +174,12 @@ fun CheckedOutItemsScreen(
                         if (searchQuery.isNotEmpty() || filterDaysOut != "All") {
                             Text(
                                 "Try adjusting your search or filters",
+                                color = mutedColor.copy(alpha = 0.7f),
+                                fontSize = 14.sp
+                            )
+                        } else {
+                            Text(
+                                "You don't have any items checked out",
                                 color = mutedColor.copy(alpha = 0.7f),
                                 fontSize = 14.sp
                             )
@@ -179,7 +192,7 @@ fun CheckedOutItemsScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(filteredItems) { detail ->
-                        CheckedOutItemCard(detail = detail, onClick = { onItemClick(detail.item.id) })
+                        CheckInItemCard(detail = detail, onClick = { onItemClick(detail.item.id) })
                     }
                 }
             }
@@ -188,14 +201,14 @@ fun CheckedOutItemsScreen(
 }
 
 @Composable
-private fun CheckedOutItemCard(
+private fun CheckInItemCard(
     detail: CheckedOutItemDetail,
     onClick: () -> Unit
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-    val primaryContainerColor = MaterialTheme.colorScheme.tertiary
+    val checkInGreen = Color(0xFF17C964)
 
     Surface(
         onClick = onClick,
@@ -220,10 +233,10 @@ private fun CheckedOutItemCard(
                     modifier = Modifier
                         .size(46.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(primaryContainerColor),
+                        .background(checkInGreen),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.Build, contentDescription = null, tint = onSurfaceColor)
+                    Icon(Icons.Outlined.Build, contentDescription = null, tint = Color.White)
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
@@ -256,16 +269,29 @@ private fun CheckedOutItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("Checked out by:", color = mutedColor, fontSize = 12.sp)
-                    Text(detail.user.name, color = onSurfaceColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                }
-                Column(horizontalAlignment = Alignment.End) {
                     Text("Days out:", color = mutedColor, fontSize = 12.sp)
                     Text(
                         "${detail.daysOut} days",
                         color = if (detail.daysOut >= 30) Color(0xFFEF4444) else onSurfaceColor,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Condition:", color = mutedColor, fontSize = 12.sp)
+                    Text(
+                        detail.item.condition,
+                        color = onSurfaceColor,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Icon(
+                        Icons.Outlined.ChevronRight,
+                        contentDescription = null,
+                        tint = mutedColor,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
@@ -276,8 +302,8 @@ private fun CheckedOutItemCard(
 /* ---------- Preview ---------- */
 @Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
 @Composable
-private fun PreviewCheckedOutItems() {
+private fun PreviewCheckInItemsList() {
     MaterialTheme {
-        CheckedOutItemsScreen()
+        CheckInItemsListScreen()
     }
 }

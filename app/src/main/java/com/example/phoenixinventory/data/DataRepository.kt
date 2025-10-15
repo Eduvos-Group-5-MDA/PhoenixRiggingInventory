@@ -137,6 +137,13 @@ object DataRepository {
 
     fun getCurrentUser(): User = users.first() // For demo, returns first user
 
+    fun updateUser(user: User) {
+        val index = users.indexOfFirst { it.id == user.id }
+        if (index != -1) {
+            users[index] = user
+        }
+    }
+
     // Checkout operations
     fun checkOutItem(itemId: String, userId: String, notes: String = "") {
         val item = getItemById(itemId)

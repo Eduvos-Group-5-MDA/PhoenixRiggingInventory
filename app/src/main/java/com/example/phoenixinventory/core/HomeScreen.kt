@@ -35,16 +35,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.example.phoenixinventory.R
 import androidx.compose.ui.text.style.TextOverflow
-
-/* -------------------- Palette (dark) -------------------- */
-private val Carbon = Color(0xFF0E1116)
-private val Charcoal = Color(0xFF151A21)
-private val CardDark = Color(0xFF1A2028)
-private val Ink = Color(0xFF0B0F1C)
-private val OnDark = Color(0xFFE7EBF2)
-private val Muted = Color(0xFFBFC8D4)
-private val Primary = Color(0xFF0A0C17)           // deep navy/ink
-private val PrimaryContainer = Color(0xFF121729)   // slightly lighter
+import com.example.phoenixinventory.ui.theme.AppColors
 
 /* -------------------- Public screen -------------------- */
 @Composable
@@ -52,14 +43,21 @@ fun HomeScreen(
     onLogin: () -> Unit = {},
     onRegister: () -> Unit = {}
 ) {
+    val backgroundColor = AppColors.Carbon
+    val surfaceColor = AppColors.Charcoal
+    val cardColor = AppColors.CardDark
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryColor = AppColors.Primary
+    val primaryContainerColor = AppColors.PrimaryContainer
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    0f to Carbon,
-                    0.5f to Charcoal,
-                    1f to Carbon
+                    0f to backgroundColor,
+                    0.5f to surfaceColor,
+                    1f to backgroundColor
                 )
             )
             .padding(16.dp)
@@ -70,7 +68,7 @@ fun HomeScreen(
                 .fillMaxHeight()
                 .align(Alignment.TopCenter)
                 .clip(RoundedCornerShape(28.dp))
-                .background(CardDark)
+                .background(cardColor)
                 .padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -83,7 +81,7 @@ fun HomeScreen(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Professional rigging equipment management\nsystem",
-                color = Muted,
+                color = mutedColor,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
                 lineHeight = 18.sp
@@ -100,8 +98,8 @@ fun HomeScreen(
             PrimaryButton(
                 text = "Login",
                 onClick = onLogin, // navigate to Login screen
-                containerColor = Primary,
-                contentColor = OnDark,
+                containerColor = primaryColor,
+                contentColor = onSurfaceColor,
                 height = 52.dp
             )
             Spacer(Modifier.height(12.dp))
@@ -109,14 +107,14 @@ fun HomeScreen(
                 text = "Register",
                 onClick = onRegister, // navigate to Register screen
                 borderColor = Color(0xFF2A3442),
-                textColor = OnDark,
+                textColor = onSurfaceColor,
                 height = 52.dp
             )
 
             Spacer(Modifier.height(18.dp))
             Text(
                 text = "Secure equipment management for professional rigging operations",
-                color = Muted,
+                color = mutedColor,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 8.dp)
@@ -129,6 +127,9 @@ fun HomeScreen(
 
 @Composable
 private fun TopBadge() {
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryContainerColor = AppColors.PrimaryContainer
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,27 +140,27 @@ private fun TopBadge() {
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(PrimaryContainer),
+                .background(primaryContainerColor),
             contentAlignment = Alignment.Center
         ) {
             Text("") // visual placeholder to keep spacing if icon not available
             androidx.compose.material3.Icon(
                 imageVector = Icons.Outlined.Build,
                 contentDescription = null,
-                tint = OnDark
+                tint = onSurfaceColor
             )
         }
         Spacer(Modifier.width(12.dp))
         Column {
             Text(
                 text = "Phoenix Rigging",
-                color = OnDark,
+                color = onSurfaceColor,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 18.sp
             )
             Text(
                 text = "Equipment Management",
-                color = Muted,
+                color = mutedColor,
                 fontSize = 12.sp
             )
         }
@@ -170,9 +171,10 @@ private fun TopBadge() {
 
 @Composable
 private fun BigEmblem() {
+    val primaryContainerColor = AppColors.PrimaryContainer
     Surface(
         shape = RoundedCornerShape(28.dp),
-        color = PrimaryContainer,
+        color = primaryContainerColor,
         tonalElevation = 2.dp,
         shadowElevation = 2.dp,
         modifier = Modifier
@@ -220,10 +222,13 @@ private fun InfoBlock(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier
 ) {
+    val surfaceColor = AppColors.Charcoal
+    val primaryContainerColor = AppColors.PrimaryContainer
+    val onSurfaceColor = AppColors.OnDark
     // Not clickable by design
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = Charcoal,
+        color = surfaceColor,
         tonalElevation = 2.dp,
         shadowElevation = 2.dp,
         modifier = Modifier
@@ -241,15 +246,15 @@ private fun InfoBlock(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(PrimaryContainer),
+                    .background(primaryContainerColor),
                 contentAlignment = Alignment.Center
             ) {
-                androidx.compose.material3.Icon(icon, contentDescription = title, tint = OnDark)
+                androidx.compose.material3.Icon(icon, contentDescription = title, tint = onSurfaceColor)
             }
             Spacer(Modifier.width(14.dp))
             Text(
                 text = title,
-                color = OnDark,
+                color = onSurfaceColor,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,                       // 👈 force a single line
@@ -310,11 +315,11 @@ private fun SecondaryButton(
 private fun HomeScreenPreview() {
     MaterialTheme(
         colorScheme = androidx.compose.material3.darkColorScheme(
-            primary = Primary,
-            onPrimary = OnDark,
-            background = Carbon,
-            surface = CardDark,
-            onSurface = OnDark
+            primary = AppColors.Primary,
+            onPrimary = AppColors.OnDark,
+            background = AppColors.Carbon,
+            surface = AppColors.CardDark,
+            onSurface = AppColors.OnDark
         )
     ) {
         HomeScreen()

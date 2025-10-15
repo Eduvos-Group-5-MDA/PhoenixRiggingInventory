@@ -1,6 +1,8 @@
 package com.example.phoenixinventory.core
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -26,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.phoenixinventory.ui.theme.ThemeState
 
 /* ---------- Palette (same as other screens) ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -52,6 +55,7 @@ fun DashboardScreen(
     stolenLostDamagedCount: Int,
     onLogout: () -> Unit = {},
     onViewAllItems: () -> Unit = {},
+    onMyCheckedOutItems: () -> Unit = {},
     onCheckedIn: () -> Unit = {},
     onCheckedOut: () -> Unit = {},
     onCheckIn: () -> Unit = {},
@@ -60,10 +64,17 @@ fun DashboardScreen(
     onManageUsers: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon)))
+            .background(backgroundColor)
     ) {
         Column(
             modifier = Modifier
@@ -73,7 +84,7 @@ fun DashboardScreen(
                 .widthIn(max = 720.dp)
                 .align(Alignment.TopCenter)
                 .clip(RoundedCornerShape(28.dp))
-                .background(CardDark)
+                .background(surfaceColor)
                 .padding(16.dp)
         ) {
 
@@ -86,17 +97,20 @@ fun DashboardScreen(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(PrimaryContainer),
+                        .background(MaterialTheme.colorScheme.tertiary),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Outlined.Build, contentDescription = null, tint = OnDark) }
+                ) { Icon(Icons.Outlined.Build, contentDescription = null, tint = onSurfaceColor) }
 
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Dashboard", color = OnDark, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("Welcome back, $userName", color = Muted, fontSize = 13.sp)
+                    Text("Dashboard", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("Welcome back, $userName", color = onSurfaceColor.copy(alpha = 0.7f), fontSize = 13.sp)
+                }
+                IconButton(onClick = { showSettingsDialog = true }) {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = onSurfaceColor)
                 }
                 IconButton(onClick = { showLogoutDialog = true }) {
-                    Icon(Icons.Outlined.Logout, contentDescription = "Logout", tint = OnDark)
+                    Icon(Icons.Outlined.Logout, contentDescription = "Logout", tint = onSurfaceColor)
                 }
             }
 
@@ -104,7 +118,7 @@ fun DashboardScreen(
 
             /* ---------- Profile Card ---------- */
             Surface(
-                color = Charcoal,
+                color = secondaryColor,
                 shape = RoundedCornerShape(20.dp),
                 tonalElevation = 2.dp,
                 shadowElevation = 2.dp,
@@ -116,14 +130,14 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(PrimaryContainer),
+                                .background(MaterialTheme.colorScheme.tertiary),
                             contentAlignment = Alignment.Center
-                        ) { Icon(Icons.Outlined.Person, contentDescription = null, tint = OnDark) }
+                        ) { Icon(Icons.Outlined.Person, contentDescription = null, tint = onSurfaceColor) }
 
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(userName, color = OnDark, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                            Text(email, color = Muted, fontSize = 13.sp)
+                            Text(userName, color = onSurfaceColor, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                            Text(email, color = onSurfaceColor.copy(alpha = 0.7f), fontSize = 13.sp)
                         }
                     }
 
@@ -132,9 +146,9 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Role:", color = OnDark, fontWeight = FontWeight.SemiBold)
+                        Text("Role:", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.weight(1f))
-                        Text(role, color = OnDark, fontWeight = FontWeight.SemiBold)
+                        Text(role, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -251,7 +265,7 @@ fun DashboardScreen(
                 subtitle = "View all of the items that you currently have checked out.",
                 icon = Icons.Outlined.Inventory2,
                 iconBg = Color(0xFFFF6F00),
-                onClick = onViewAllItems
+                onClick = onMyCheckedOutItems
             )
 
             ActionRow(
@@ -329,6 +343,13 @@ fun DashboardScreen(
                     }
                 },
                 containerColor = CardDark
+            )
+        }
+
+        /* ---------- Settings Dialog ---------- */
+        if (showSettingsDialog) {
+            SettingsDialog(
+                onDismiss = { showSettingsDialog = false }
             )
         }
     }
@@ -421,6 +442,167 @@ private fun ActionRow(
                 Text(subtitle, color = Muted, fontSize = 13.sp)
             }
             Icon(Icons.Outlined.NavigateNext, contentDescription = null, tint = OnDark)
+        }
+    }
+}
+
+/* ---------- Settings Dialog ---------- */
+@Composable
+private fun SettingsDialog(
+    onDismiss: () -> Unit
+) {
+    val isDarkMode = ThemeState.isDarkMode
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)),
+        contentAlignment = Alignment.Center
+    ) {
+        // Background scrim - clicking dismisses dialog
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    onDismiss()
+                }
+        )
+
+        // Settings card
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = CardDark,
+            tonalElevation = 8.dp,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .padding(16.dp)
+                .widthIn(max = 400.dp)
+                .fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp)
+            ) {
+                // Header with close button
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Outlined.Settings,
+                        contentDescription = null,
+                        tint = OnDark,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Settings",
+                        color = OnDark,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.Outlined.Close,
+                            contentDescription = "Close",
+                            tint = OnDark
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                // Report button
+                Surface(
+                    onClick = { /* TODO: Handle report action */ },
+                    color = Charcoal,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.Report,
+                            contentDescription = null,
+                            tint = OnDark,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            "Report an Issue",
+                            color = OnDark,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Dark/Light mode toggle
+                Surface(
+                    color = Charcoal,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            if (isDarkMode) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
+                            contentDescription = null,
+                            tint = OnDark,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            if (isDarkMode) "Dark Mode" else "Light Mode",
+                            color = OnDark,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Switch(
+                            checked = isDarkMode,
+                            onCheckedChange = { ThemeState.isDarkMode = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = OnDark,
+                                checkedTrackColor = PrimaryContainer,
+                                uncheckedThumbColor = Muted,
+                                uncheckedTrackColor = Primary
+                            )
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                // Version number
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Surface(
+                        color = PrimaryContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            "Version 1.0",
+                            color = Muted,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
         }
     }
 }

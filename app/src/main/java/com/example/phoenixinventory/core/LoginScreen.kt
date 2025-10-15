@@ -30,22 +30,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.KeyboardType
-
-// Dark palette (same as Home)
-private val Carbon = Color(0xFF0E1116)
-private val Charcoal = Color(0xFF151A21)
-private val CardDark = Color(0xFF1A2028)
-private val OnDark = Color(0xFFE7EBF2)
-private val Muted = Color(0xFFBFC8D4)
-private val Primary = Color(0xFF0A0C17)
-private val PrimaryContainer = Color(0xFF121729)
+import com.example.phoenixinventory.ui.theme.AppColors
 
 @Composable
 fun LoginScreen(
     onBack: () -> Unit,
     onLoginSuccess: () -> Unit,   // ← call this to go to Dashboard
-    onGoToRegister: () -> Unit
+    onGoToRegister: () -> Unit,
+    onForgotPassword: () -> Unit = {}
 ) {
+    val backgroundColor = AppColors.Carbon
+    val surfaceColor = AppColors.Charcoal
+    val cardColor = AppColors.CardDark
+    val onSurfaceColor = AppColors.OnDark
+    val mutedColor = AppColors.Muted
+    val primaryColor = AppColors.Primary
+    val primaryContainerColor = AppColors.PrimaryContainer
     val context = LocalContext.current
 
     var email by remember { mutableStateOf("") }
@@ -65,7 +65,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon)))
+            .background(Brush.verticalGradient(listOf(backgroundColor, surfaceColor, backgroundColor)))
     ) {
         Column(
             modifier = Modifier
@@ -75,7 +75,7 @@ fun LoginScreen(
                 .widthIn(max = 640.dp)
                 .align(Alignment.TopCenter)
                 .clip(RoundedCornerShape(28.dp))
-                .background(CardDark)
+                .background(cardColor)
                 .padding(16.dp)
         ) {
 
@@ -87,26 +87,26 @@ fun LoginScreen(
                     .padding(top = 4.dp, bottom = 8.dp)
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = OnDark)
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = onSurfaceColor)
                 }
                 Spacer(Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(PrimaryContainer),
+                        .background(primaryContainerColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.Build, contentDescription = null, tint = OnDark)
+                    Icon(Icons.Outlined.Build, contentDescription = null, tint = onSurfaceColor)
                 }
                 Spacer(Modifier.width(8.dp))
-                Text("Login", color = OnDark, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text("Login", color = onSurfaceColor, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
 
             // Card
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Charcoal,
+                color = surfaceColor,
                 tonalElevation = 2.dp,
                 shadowElevation = 2.dp,
                 modifier = Modifier
@@ -120,14 +120,14 @@ fun LoginScreen(
 
                     Text(
                         text = "Welcome Back",
-                        color = OnDark,
+                        color = onSurfaceColor,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = "Sign in to your Phoenix Rigging account",
-                        color = Muted,
+                        color = mutedColor,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
@@ -135,7 +135,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(20.dp))
 
                     // Email
-                    Text("Email", color = OnDark, fontWeight = FontWeight.SemiBold)
+                    Text("Email", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = email,
@@ -151,16 +151,16 @@ fun LoginScreen(
                             imeAction = ImeAction.Next
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryContainer,
-                            unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
+                            focusedBorderColor = primaryContainerColor,
+                            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
                             errorBorderColor = Color(0xFFFF4C4C), // red border when invalid
-                            cursorColor = OnDark,
-                            focusedTextColor = OnDark,
-                            unfocusedTextColor = OnDark,
-                            errorTextColor = OnDark, // keep white text even when invalid
-                            focusedPlaceholderColor = Muted,
-                            unfocusedPlaceholderColor = Muted,
-                            errorPlaceholderColor = Muted, // gray placeholder in error state
+                            cursorColor = onSurfaceColor,
+                            focusedTextColor = onSurfaceColor,
+                            unfocusedTextColor = onSurfaceColor,
+                            errorTextColor = onSurfaceColor, // keep white text even when invalid
+                            focusedPlaceholderColor = mutedColor,
+                            unfocusedPlaceholderColor = mutedColor,
+                            errorPlaceholderColor = mutedColor, // gray placeholder in error state
                             errorSupportingTextColor = Color(0xFFFF4C4C) // red error message
                         ),
                         modifier = Modifier
@@ -172,7 +172,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(14.dp))
 
                     // Password
-                    Text("Password", color = OnDark, fontWeight = FontWeight.SemiBold)
+                    Text("Password", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = password,
@@ -186,7 +186,7 @@ fun LoginScreen(
                                 Icon(
                                     imageVector = if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                     contentDescription = "Toggle password",
-                                    tint = OnDark
+                                    tint = onSurfaceColor
                                 )
                             }
                         },
@@ -198,22 +198,38 @@ fun LoginScreen(
                             imeAction = ImeAction.Done
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryContainer,
-                            unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
+                            focusedBorderColor = primaryContainerColor,
+                            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
                             errorBorderColor = Color(0xFFFF4C4C), // red border when invalid
-                            cursorColor = OnDark,
-                            focusedTextColor = OnDark,
-                            unfocusedTextColor = OnDark,
-                            errorTextColor = OnDark, // keep white text even when invalid
-                            focusedPlaceholderColor = Muted,
-                            unfocusedPlaceholderColor = Muted,
-                            errorPlaceholderColor = Muted, // gray placeholder in error state
+                            cursorColor = onSurfaceColor,
+                            focusedTextColor = onSurfaceColor,
+                            unfocusedTextColor = onSurfaceColor,
+                            errorTextColor = onSurfaceColor, // keep white text even when invalid
+                            focusedPlaceholderColor = mutedColor,
+                            unfocusedPlaceholderColor = mutedColor,
+                            errorPlaceholderColor = mutedColor, // gray placeholder in error state
                             errorSupportingTextColor = Color(0xFFFF4C4C) // red error message
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
                     )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Forgot Password link
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            "Forgot Password?",
+                            color = onSurfaceColor,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable { onForgotPassword() }
+                        )
+                    }
 
                     Spacer(Modifier.height(18.dp))
 
@@ -226,8 +242,8 @@ fun LoginScreen(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Primary,
-                            contentColor = OnDark
+                            containerColor = primaryColor,
+                            contentColor = onSurfaceColor
                         ),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
@@ -239,10 +255,10 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(14.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Don't have an account? ", color = Muted)
+                        Text("Don't have an account? ", color = mutedColor)
                         Text(
                             "Register",
-                            color = OnDark,
+                            color = onSurfaceColor,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.clickable { onGoToRegister() }
                         )
@@ -260,7 +276,8 @@ private fun PreviewLogin() {
         LoginScreen(
             onBack = {},
             onLoginSuccess = {},
-            onGoToRegister = {}
+            onGoToRegister = {},
+            onForgotPassword = {}
         )
     }
 }

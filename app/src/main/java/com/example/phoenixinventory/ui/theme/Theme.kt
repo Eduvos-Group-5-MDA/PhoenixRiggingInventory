@@ -12,43 +12,39 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = DarkPrimary,
+    secondary = DarkCharcoal,
+    tertiary = DarkPrimaryContainer,
+    background = DarkCarbon,
+    surface = DarkCardDark,
+    onPrimary = DarkOnDark,
+    onSecondary = DarkOnDark,
+    onTertiary = DarkOnDark,
+    onBackground = DarkOnDark,
+    onSurface = DarkOnDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = LightPrimary,
+    secondary = LightCard,
+    tertiary = LightPrimaryContainer,
+    background = LightBackground,
+    surface = LightSurface,
+    onPrimary = LightOnLight,
+    onSecondary = LightOnLight,
+    onTertiary = LightOnLight,
+    onBackground = LightOnLight,
+    onSurface = LightOnLight
 )
 
 @Composable
 fun PhoenixInventoryTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = ThemeState.isDarkMode,
+    // Dynamic color disabled to use custom colors
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -1,7 +1,6 @@
 package com.example.phoenixinventory.core
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,22 +24,32 @@ import com.example.phoenixinventory.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ViewAllItemsScreen(
+fun MyCheckedOutItemsScreen(
     onBack: () -> Unit = {},
     onItemClick: (String) -> Unit = {}
 ) {
-    val backgroundColor = AppColors.Carbon
-    val surfaceColor = AppColors.Charcoal
-    val cardColor = AppColors.CardDark
-    val onSurfaceColor = AppColors.OnDark
-    val mutedColor = AppColors.Muted
-    val primaryColor = AppColors.Primary
-    val primaryContainerColor = AppColors.PrimaryContainer
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val cardColor = MaterialTheme.colorScheme.secondary
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val primaryContainerColor = MaterialTheme.colorScheme.tertiary
+
     var searchQuery by remember { mutableStateOf("") }
     var filterStatus by remember { mutableStateOf("All") }
-    val items = remember { DataRepository.getAllItems() }
 
-    val filteredItems = items.filter { item ->
+    // Get current user and their checked out items
+    val currentUser = remember { DataRepository.getCurrentUser() }
+    val allCheckedOutItems = remember { DataRepository.getCheckedOutItems() }
+
+    // Filter to only show items checked out by current user
+    val myCheckedOutItems = remember(allCheckedOutItems) {
+        allCheckedOutItems
+            .filter { it.user.id == currentUser.id }
+            .map { it.item }
+    }
+
+    val filteredItems = myCheckedOutItems.filter { item ->
         val matchesSearch = item.name.contains(searchQuery, ignoreCase = true) ||
                 item.serialId.contains(searchQuery, ignoreCase = true) ||
                 item.description.contains(searchQuery, ignoreCase = true)
@@ -51,7 +60,7 @@ fun ViewAllItemsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(backgroundColor, surfaceColor, backgroundColor)))
+            .background(backgroundColor)
     ) {
         Column(
             modifier = Modifier
@@ -79,11 +88,11 @@ fun ViewAllItemsScreen(
                         .clip(RoundedCornerShape(8.dp))
                         .background(primaryContainerColor),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Outlined.Inventory, contentDescription = null, tint = onSurfaceColor) }
+                ) { Icon(Icons.Outlined.Inventory2, contentDescription = null, tint = onSurfaceColor) }
 
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("All Items", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("My Checked Out Items", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Text("${filteredItems.size} items", color = mutedColor, fontSize = 13.sp)
                 }
             }
@@ -116,7 +125,7 @@ fun ViewAllItemsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                listOf("All", "Available", "Checked Out", "Under Maintenance", "Damaged").forEach { status ->
+                listOf("All", "Checked Out").forEach { status ->
                     FilterChip(
                         selected = filterStatus == status,
                         onClick = { filterStatus = status },
@@ -134,12 +143,43 @@ fun ViewAllItemsScreen(
             Spacer(Modifier.height(12.dp))
 
             /* ---------- Items List ---------- */
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(filteredItems) { item ->
-                    ItemCard(item = item, onClick = { onItemClick(item.id) })
+            if (filteredItems.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Outlined.Inventory2,
+                            contentDescription = null,
+                            tint = mutedColor,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "No items checked out",
+                            color = mutedColor,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            "You don't have any items currently checked out",
+                            color = mutedColor.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredItems) { item ->
+                        ItemCard(item = item, onClick = { onItemClick(item.id) })
+                    }
                 }
             }
         }
@@ -151,10 +191,10 @@ private fun ItemCard(
     item: InventoryItem,
     onClick: () -> Unit
 ) {
-    val surfaceColor = AppColors.Charcoal
-    val onSurfaceColor = AppColors.OnDark
-    val mutedColor = AppColors.Muted
-    val primaryContainerColor = AppColors.PrimaryContainer
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val primaryContainerColor = MaterialTheme.colorScheme.tertiary
     Surface(
         onClick = onClick,
         color = surfaceColor,
@@ -207,8 +247,8 @@ private fun getStatusColor(status: String): Color {
 /* ---------- Preview ---------- */
 @Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
 @Composable
-private fun PreviewViewAllItems() {
+private fun PreviewMyCheckedOutItems() {
     MaterialTheme {
-        ViewAllItemsScreen()
+        MyCheckedOutItemsScreen()
     }
 }

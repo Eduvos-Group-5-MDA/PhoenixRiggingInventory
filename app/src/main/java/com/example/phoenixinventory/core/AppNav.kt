@@ -9,16 +9,27 @@ object Dest {
     const val HOME = "home"
     const val LOGIN = "login"
     const val REGISTER = "register"
+    const val FORGOT_PASSWORD = "forgot_password"
     const val DASHBOARD = "dashboard"
     const val ADD_ITEM = "add_item"
     const val VIEW_ALL_ITEMS = "view_all_items"
     const val VIEW_ALL_ITEMS_EDIT = "view_all_items_edit"
     const val VIEW_ALL_ITEMS_DELETE = "view_all_items_delete"
+    const val VIEW_ALL_ITEMS_CHECKOUT = "view_all_items_checkout"
     const val CHECKED_OUT_ITEMS = "checked_out_items"
+    const val CHECKED_IN_ITEMS = "checked_in_items"
+    const val MY_CHECKED_OUT_ITEMS = "my_checked_out_items"
+    const val CHECKOUT_ITEMS_LIST = "checkout_items_list"
+    const val CHECKIN_ITEMS_LIST = "checkin_items_list"
     const val ITEM_DETAIL = "item_detail"
+    const val ITEM_EDIT = "item_edit"
+    const val ITEM_DELETE = "item_delete"
+    const val ITEM_CHECKOUT = "item_checkout"
     const val CHECK_IN_OUT = "check_in_out"
     const val MANAGE_USERS = "manage_users"
+    const val USER_EDIT = "user_edit"
     const val MANAGE_ITEMS = "manage_items"
+    const val TERMS_PRIVACY = "terms_privacy"
 }
 
 @Composable
@@ -43,7 +54,14 @@ fun AppNavHost() {
                         popUpTo(Dest.LOGIN) { inclusive = true }
                     }
                 },
-                onGoToRegister = { nav.navigate(Dest.REGISTER) }
+                onGoToRegister = { nav.navigate(Dest.REGISTER) },
+                onForgotPassword = { nav.navigate(Dest.FORGOT_PASSWORD) }
+            )
+        }
+
+        composable(Dest.FORGOT_PASSWORD) {
+            ForgotPasswordScreen(
+                onBack = { nav.popBackStack() }
             )
         }
 
@@ -81,7 +99,11 @@ fun AppNavHost() {
                     }
                 },
                 onViewAllItems = { nav.navigate(Dest.VIEW_ALL_ITEMS) },
+                onMyCheckedOutItems = { nav.navigate(Dest.MY_CHECKED_OUT_ITEMS) },
+                onCheckedIn = { nav.navigate(Dest.CHECKED_IN_ITEMS) },
                 onCheckedOut = { nav.navigate(Dest.CHECKED_OUT_ITEMS) },
+                onCheckIn = { nav.navigate(Dest.CHECKIN_ITEMS_LIST) },
+                onCheckOut = { nav.navigate(Dest.CHECKOUT_ITEMS_LIST) },
                 onManageUsers = { nav.navigate(Dest.MANAGE_USERS) },
                 onManageItem = { nav.navigate(Dest.MANAGE_ITEMS) }
             )
@@ -126,14 +148,47 @@ fun AppNavHost() {
             )
         }
 
+        composable(Dest.MY_CHECKED_OUT_ITEMS) {
+            MyCheckedOutItemsScreen(
+                onBack = { nav.popBackStack() },
+                onItemClick = { itemId ->
+                    nav.navigate("${Dest.ITEM_DETAIL}/$itemId")
+                }
+            )
+        }
+
+        composable(Dest.CHECKED_IN_ITEMS) {
+            CheckedInItemsScreen(
+                onBack = { nav.popBackStack() },
+                onItemClick = { itemId ->
+                    nav.navigate("${Dest.ITEM_DETAIL}/$itemId")
+                }
+            )
+        }
+
+        composable(Dest.CHECKOUT_ITEMS_LIST) {
+            CheckoutItemsListScreen(
+                onBack = { nav.popBackStack() },
+                onItemClick = { itemId ->
+                    nav.navigate("${Dest.ITEM_CHECKOUT}/$itemId")
+                }
+            )
+        }
+
+        composable(Dest.CHECKIN_ITEMS_LIST) {
+            CheckInItemsListScreen(
+                onBack = { nav.popBackStack() },
+                onItemClick = { itemId ->
+                    nav.navigate("${Dest.CHECK_IN_OUT}/$itemId")
+                }
+            )
+        }
+
         composable("${Dest.ITEM_DETAIL}/{itemId}") { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
             ItemDetailScreen(
                 itemId = itemId,
-                onBack = { nav.popBackStack() },
-                onCheckInOut = { id ->
-                    nav.navigate("${Dest.CHECK_IN_OUT}/$id")
-                }
+                onBack = { nav.popBackStack() }
             )
         }
 
@@ -147,6 +202,17 @@ fun AppNavHost() {
 
         composable(Dest.MANAGE_USERS) {
             ManageUsersScreen(
+                onBack = { nav.popBackStack() },
+                onUserClick = { userId ->
+                    nav.navigate("${Dest.USER_EDIT}/$userId")
+                }
+            )
+        }
+
+        composable("${Dest.USER_EDIT}/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+            UserEditScreen(
+                userId = userId,
                 onBack = { nav.popBackStack() }
             )
         }
@@ -155,10 +221,71 @@ fun AppNavHost() {
             // Navigate to Add/Edit/Delete from here
             ManageScreen(
                 onAddClick = { nav.navigate(Dest.ADD_ITEM) },
-                onEditClick = { nav.navigate(Dest.VIEW_ALL_ITEMS) },
-                onDeleteClick = { nav.navigate(Dest.VIEW_ALL_ITEMS) },
+                onEditClick = { nav.navigate(Dest.VIEW_ALL_ITEMS_EDIT) },
+                onDeleteClick = { nav.navigate(Dest.VIEW_ALL_ITEMS_DELETE) },
+                onBack = { nav.navigate(Dest.DASHBOARD) }
+            )
+        }
+
+        // View all items for editing
+        composable(Dest.VIEW_ALL_ITEMS_EDIT) {
+            ViewAllItemsScreen(
+                onBack = { nav.popBackStack() },
+                onItemClick = { itemId ->
+                    nav.navigate("${Dest.ITEM_EDIT}/$itemId")
+                }
+            )
+        }
+
+        // View all items for deleting
+        composable(Dest.VIEW_ALL_ITEMS_DELETE) {
+            ViewAllItemsScreen(
+                onBack = { nav.popBackStack() },
+                onItemClick = { itemId ->
+                    nav.navigate("${Dest.ITEM_DELETE}/$itemId")
+                }
+            )
+        }
+
+        // View all items for checkout
+        composable(Dest.VIEW_ALL_ITEMS_CHECKOUT) {
+            ViewAllItemsScreen(
+                onBack = { nav.popBackStack() },
+                onItemClick = { itemId ->
+                    nav.navigate("${Dest.ITEM_CHECKOUT}/$itemId")
+                }
+            )
+        }
+
+        // Edit specific item
+        composable("${Dest.ITEM_EDIT}/{itemId}") { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
+            ItemEditScreen(
+                itemId = itemId,
                 onBack = { nav.popBackStack() }
             )
+        }
+
+        // Delete specific item
+        composable("${Dest.ITEM_DELETE}/{itemId}") { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
+            ItemDeleteScreen(
+                itemId = itemId,
+                onBack = { nav.popBackStack() }
+            )
+        }
+
+        // Checkout specific item
+        composable("${Dest.ITEM_CHECKOUT}/{itemId}") { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
+            ItemCheckoutScreen(
+                itemId = itemId,
+                onBack = { nav.popBackStack() }
+            )
+        }
+
+        composable(Dest.TERMS_PRIVACY) {
+            TermsPrivacyScreen(onBack = { nav.popBackStack() })
         }
     }
 }

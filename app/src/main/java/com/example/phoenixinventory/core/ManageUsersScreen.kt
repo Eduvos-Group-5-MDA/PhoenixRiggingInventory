@@ -22,26 +22,26 @@ import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
 import com.example.phoenixinventory.data.User
 
-/* ---------- Palette ---------- */
-private val Carbon = Color(0xFF0E1116)
-private val Charcoal = Color(0xFF151A21)
-private val CardDark = Color(0xFF1A2028)
-private val OnDark = Color(0xFFE7EBF2)
-private val Muted = Color(0xFFBFC8D4)
-private val Primary = Color(0xFF0A0C17)
-private val PrimaryContainer = Color(0xFF121729)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageUsersScreen(
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onUserClick: (String) -> Unit = {}
 ) {
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val cardColor = MaterialTheme.colorScheme.secondary
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val primaryContainerColor = MaterialTheme.colorScheme.tertiary
+
     val users = remember { DataRepository.getAllUsers() }
     var selectedUser by remember { mutableStateOf<User?>(null) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon)))
+            .background(backgroundColor)
     ) {
         Column(
             modifier = Modifier
@@ -50,7 +50,7 @@ fun ManageUsersScreen(
                 .widthIn(max = 720.dp)
                 .align(Alignment.TopCenter)
                 .clip(RoundedCornerShape(28.dp))
-                .background(CardDark)
+                .background(cardColor)
                 .padding(16.dp)
         ) {
 
@@ -60,21 +60,21 @@ fun ManageUsersScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = OnDark)
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Back", tint = onSurfaceColor)
                 }
                 Spacer(Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(PrimaryContainer),
+                        .background(primaryContainerColor),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Outlined.Group, contentDescription = null, tint = OnDark) }
+                ) { Icon(Icons.Outlined.Group, contentDescription = null, tint = onSurfaceColor) }
 
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Manage Users", color = OnDark, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("${users.size} total users", color = Muted, fontSize = 13.sp)
+                    Text("Manage Users", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("${users.size} total users", color = mutedColor, fontSize = 13.sp)
                 }
             }
 
@@ -89,7 +89,8 @@ fun ManageUsersScreen(
                     UserCard(
                         user = user,
                         isSelected = user == selectedUser,
-                        onClick = { selectedUser = if (selectedUser == user) null else user }
+                        onClick = { selectedUser = if (selectedUser == user) null else user },
+                        onEditClick = { onUserClick(user.id) }
                     )
                 }
             }
@@ -99,7 +100,7 @@ fun ManageUsersScreen(
                 Spacer(Modifier.height(16.dp))
 
                 Surface(
-                    color = Charcoal,
+                    color = surfaceColor,
                     shape = RoundedCornerShape(20.dp),
                     tonalElevation = 2.dp,
                     shadowElevation = 2.dp,
@@ -107,9 +108,9 @@ fun ManageUsersScreen(
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Person, contentDescription = null, tint = OnDark)
+                            Icon(Icons.Outlined.Person, contentDescription = null, tint = onSurfaceColor)
                             Spacer(Modifier.width(8.dp))
-                            Text("User Details", color = OnDark, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                            Text("User Details", color = onSurfaceColor, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                         }
                         Spacer(Modifier.height(12.dp))
 
@@ -126,7 +127,7 @@ fun ManageUsersScreen(
 
                         if (userCheckouts.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
-                            Text("Checked Out Items:", color = Muted, fontSize = 13.sp)
+                            Text("Checked Out Items:", color = mutedColor, fontSize = 13.sp)
                             Spacer(Modifier.height(4.dp))
                             userCheckouts.forEach { checkout ->
                                 Row(
@@ -135,10 +136,10 @@ fun ManageUsersScreen(
                                         .padding(vertical = 2.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("• ${checkout.item.name}", color = OnDark, fontSize = 13.sp)
+                                    Text("• ${checkout.item.name}", color = onSurfaceColor, fontSize = 13.sp)
                                     Text(
                                         "${checkout.daysOut} days",
-                                        color = if (checkout.daysOut >= 30) Color(0xFFEF4444) else Muted,
+                                        color = if (checkout.daysOut >= 30) Color(0xFFEF4444) else mutedColor,
                                         fontSize = 12.sp
                                     )
                                 }
@@ -157,11 +158,17 @@ fun ManageUsersScreen(
 private fun UserCard(
     user: User,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEditClick: () -> Unit
 ) {
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val primaryContainerColor = MaterialTheme.colorScheme.tertiary
+
     Surface(
         onClick = onClick,
-        color = if (isSelected) PrimaryContainer else Charcoal,
+        color = if (isSelected) primaryContainerColor else surfaceColor,
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 2.dp,
         shadowElevation = 2.dp,
@@ -179,17 +186,20 @@ private fun UserCard(
                 modifier = Modifier
                     .size(46.dp)
                     .clip(CircleShape)
-                    .background(if (isSelected) Charcoal else PrimaryContainer),
+                    .background(if (isSelected) surfaceColor else primaryContainerColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.Person, contentDescription = null, tint = OnDark)
+                Icon(Icons.Outlined.Person, contentDescription = null, tint = onSurfaceColor)
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(user.name, color = OnDark, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(user.email, color = Muted, fontSize = 12.sp)
+                Text(user.name, color = onSurfaceColor, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(user.email, color = mutedColor, fontSize = 12.sp)
             }
-            Column(horizontalAlignment = Alignment.End) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -204,6 +214,17 @@ private fun UserCard(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
+                IconButton(
+                    onClick = onEditClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = "Edit User",
+                        tint = onSurfaceColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -211,14 +232,17 @@ private fun UserCard(
 
 @Composable
 private fun DetailRow(label: String, value: String) {
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = Muted, fontSize = 14.sp)
-        Text(value, color = OnDark, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = mutedColor, fontSize = 14.sp)
+        Text(value, color = onSurfaceColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
 

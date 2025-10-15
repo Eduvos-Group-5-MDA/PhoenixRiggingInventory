@@ -23,15 +23,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/* ---------- Palette ---------- */
-private val Carbon = Color(0xFF0E1116)
-private val Charcoal = Color(0xFF151A21)
-private val CardDark = Color(0xFF1A2028)
-private val OnDark = Color(0xFFE7EBF2)
-private val Muted = Color(0xFFBFC8D4)
-private val PrimaryContainer = Color(0xFF121729)
-
 /* ---------- Screen ---------- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageScreen(
     onAddClick: () -> Unit,
@@ -39,10 +32,17 @@ fun ManageScreen(
     onDeleteClick: () -> Unit,
     onBack: () -> Unit = {}
 ) {
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val cardColor = MaterialTheme.colorScheme.secondary
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val accentColor = Color(0xFFFF6F00)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon)))
+            .background(backgroundColor)
     ) {
         Column(
             modifier = Modifier
@@ -52,7 +52,7 @@ fun ManageScreen(
                 .widthIn(max = 720.dp)
                 .align(Alignment.TopCenter)
                 .clip(RoundedCornerShape(28.dp))
-                .background(CardDark)
+                .background(cardColor)
                 .padding(16.dp)
         ) {
             /* ---------- Header ---------- */
@@ -64,13 +64,13 @@ fun ManageScreen(
                     Icon(
                         imageVector = Icons.Outlined.ArrowBack,
                         contentDescription = "Back",
-                        tint = OnDark
+                        tint = onSurfaceColor
                     )
                 }
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = "Manage Items",
-                    color = OnDark,
+                    color = onSurfaceColor,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -79,7 +79,7 @@ fun ManageScreen(
             Spacer(Modifier.height(22.dp))
             Text(
                 text = "Actions",
-                color = OnDark,
+                color = onSurfaceColor,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
@@ -91,15 +91,15 @@ fun ManageScreen(
                 title = "Add Item",
                 subtitle = "Create a new item record",
                 icon = Icons.Outlined.AddCircle,
-                iconBg = Color(0xFFFF6F00),
+                iconBg = accentColor,
                 onClick = onAddClick
             )
 
             ManageActionRow(
                 title = "Edit Item",
-                subtitle = "Update an item’s details",
+                subtitle = "Update an item's details",
                 icon = Icons.Outlined.Build,
-                iconBg = Color(0xFFFF6F00),
+                iconBg = accentColor,
                 onClick = onEditClick
             )
 
@@ -107,14 +107,14 @@ fun ManageScreen(
                 title = "Delete Item",
                 subtitle = "Remove an item from the inventory",
                 icon = Icons.Outlined.Delete,
-                iconBg = Color(0xFFFF6F00),
+                iconBg = accentColor,
                 onClick = onDeleteClick
             )
 
             Spacer(Modifier.height(16.dp))
             Text(
                 text = "Tip: You can manage all inventory actions here or from the Dashboard.",
-                color = Muted,
+                color = mutedColor,
                 fontSize = 12.sp
             )
         }
@@ -130,9 +130,13 @@ private fun ManageActionRow(
     iconBg: Color,
     onClick: () -> Unit
 ) {
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+
     Surface(
         onClick = onClick,
-        color = Charcoal,
+        color = surfaceColor,
         shape = RoundedCornerShape(24.dp),
         tonalElevation = 2.dp,
         shadowElevation = 2.dp,
@@ -158,10 +162,10 @@ private fun ManageActionRow(
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, color = OnDark, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, color = Muted, fontSize = 13.sp)
+                Text(title, color = onSurfaceColor, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(subtitle, color = mutedColor, fontSize = 13.sp)
             }
-            Icon(Icons.Outlined.NavigateNext, contentDescription = null, tint = OnDark)
+            Icon(Icons.Outlined.NavigateNext, contentDescription = null, tint = onSurfaceColor)
         }
     }
 }

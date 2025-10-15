@@ -18,12 +18,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.phoenixinventory.data.CheckedOutItemDetail
 import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.InventoryItem
+import com.example.phoenixinventory.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CheckedOutItemsScreen(
+fun CheckoutItemsListScreen(
     onBack: () -> Unit = {},
     onItemClick: (String) -> Unit = {}
 ) {
@@ -33,26 +34,22 @@ fun CheckedOutItemsScreen(
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
+    val checkoutBlue = Color(0xFF0A6CFF)
 
     var searchQuery by remember { mutableStateOf("") }
-    var filterDaysOut by remember { mutableStateOf("All") }
+    var filterCondition by remember { mutableStateOf("All") }
 
-    val allCheckedOutItems = remember { DataRepository.getCheckedOutItems() }
+    // Get all items that are available for checkout (status = "Available")
+    val allItems = remember { DataRepository.getAllItems() }
+    val availableItems = remember(allItems) {
+        allItems.filter { it.status == "Available" }
+    }
 
-    // Filter items based on search and filter criteria
-    val filteredItems = allCheckedOutItems.filter { detail ->
-        val matchesSearch = detail.item.name.contains(searchQuery, ignoreCase = true) ||
-                detail.item.serialId.contains(searchQuery, ignoreCase = true) ||
-                detail.item.description.contains(searchQuery, ignoreCase = true) ||
-                detail.user.name.contains(searchQuery, ignoreCase = true)
-
-        val matchesFilter = when (filterDaysOut) {
-            "All" -> true
-            "30+ Days" -> detail.daysOut >= 30
-            "Under 30 Days" -> detail.daysOut < 30
-            else -> true
-        }
-
+    val filteredItems = availableItems.filter { item ->
+        val matchesSearch = item.name.contains(searchQuery, ignoreCase = true) ||
+                item.serialId.contains(searchQuery, ignoreCase = true) ||
+                item.description.contains(searchQuery, ignoreCase = true)
+        val matchesFilter = filterCondition == "All" || item.condition == filterCondition
         matchesSearch && matchesFilter
     }
 
@@ -85,14 +82,14 @@ fun CheckedOutItemsScreen(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(primaryContainerColor),
+                        .background(checkoutBlue),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Outlined.Assignment, contentDescription = null, tint = onSurfaceColor) }
+                ) { Icon(Icons.Outlined.FileUpload, contentDescription = null, tint = Color.White) }
 
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Checked Out Items", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("${filteredItems.size} items", color = mutedColor, fontSize = 13.sp)
+                    Text("Check Out Item", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("${filteredItems.size} items available", color = mutedColor, fontSize = 13.sp)
                 }
             }
 
@@ -102,7 +99,7 @@ fun CheckedOutItemsScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search items or users...", color = mutedColor) },
+                placeholder = { Text("Search items...", color = mutedColor) },
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = onSurfaceColor) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
@@ -124,11 +121,11 @@ fun CheckedOutItemsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                listOf("All", "30+ Days", "Under 30 Days").forEach { filter ->
+                listOf("All", "Excellent", "Good", "Fair", "Poor").forEach { condition ->
                     FilterChip(
-                        selected = filterDaysOut == filter,
-                        onClick = { filterDaysOut = filter },
-                        label = { Text(filter, fontSize = 12.sp) },
+                        selected = filterCondition == condition,
+                        onClick = { filterCondition = condition },
+                        label = { Text(condition, fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = primaryContainerColor,
                             selectedLabelColor = onSurfaceColor,
@@ -152,19 +149,19 @@ fun CheckedOutItemsScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            Icons.Outlined.CheckCircle,
+                            Icons.Outlined.Inventory,
                             contentDescription = null,
                             tint = mutedColor,
                             modifier = Modifier.size(64.dp)
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            if (searchQuery.isEmpty() && filterDaysOut == "All") "No items checked out" else "No items found",
+                            if (searchQuery.isEmpty() && filterCondition == "All") "No items available for checkout" else "No items found",
                             color = mutedColor,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
-                        if (searchQuery.isNotEmpty() || filterDaysOut != "All") {
+                        if (searchQuery.isNotEmpty() || filterCondition != "All") {
                             Text(
                                 "Try adjusting your search or filters",
                                 color = mutedColor.copy(alpha = 0.7f),
@@ -178,8 +175,8 @@ fun CheckedOutItemsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(filteredItems) { detail ->
-                        CheckedOutItemCard(detail = detail, onClick = { onItemClick(detail.item.id) })
+                    items(filteredItems) { item ->
+                        ItemCard(item = item, onClick = { onItemClick(item.id) })
                     }
                 }
             }
@@ -188,14 +185,15 @@ fun CheckedOutItemsScreen(
 }
 
 @Composable
-private fun CheckedOutItemCard(
-    detail: CheckedOutItemDetail,
+private fun ItemCard(
+    item: InventoryItem,
     onClick: () -> Unit
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
+    val checkoutBlue = Color(0xFF0A6CFF)
 
     Surface(
         onClick = onClick,
@@ -207,67 +205,68 @@ private fun CheckedOutItemCard(
             .fillMaxWidth()
             .heightIn(min = 100.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(checkoutBlue),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(primaryContainerColor),
-                    contentAlignment = Alignment.Center
+                Icon(Icons.Outlined.Build, contentDescription = null, tint = Color.White)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(item.name, color = onSurfaceColor, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("ID: ${item.serialId}", color = mutedColor, fontSize = 12.sp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Outlined.Build, contentDescription = null, tint = onSurfaceColor)
+                    Text("Available", color = Color(0xFF17C964), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text("•", color = mutedColor, fontSize = 12.sp)
+                    Text(item.condition, color = mutedColor, fontSize = 12.sp)
                 }
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(detail.item.name, color = onSurfaceColor, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text("ID: ${detail.item.serialId}", color = mutedColor, fontSize = 12.sp)
-                }
-                // Warning badge for items out 30+ days
-                if (detail.daysOut >= 30) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFEF4444)),
-                        contentAlignment = Alignment.Center
+
+                // Show special requirements
+                if (item.permissionNeeded || item.driversLicenseNeeded) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            Icons.Outlined.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFF5A524),
+                            modifier = Modifier.size(14.dp)
+                        )
                         Text(
-                            "30+ days",
-                            color = Color.White,
+                            when {
+                                item.permissionNeeded && item.driversLicenseNeeded -> "Permission & License Required"
+                                item.permissionNeeded -> "Permission Required"
+                                else -> "License Required"
+                            },
+                            color = Color(0xFFF5A524),
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text("Checked out by:", color = mutedColor, fontSize = 12.sp)
-                    Text(detail.user.name, color = onSurfaceColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Days out:", color = mutedColor, fontSize = 12.sp)
-                    Text(
-                        "${detail.daysOut} days",
-                        color = if (detail.daysOut >= 30) Color(0xFFEF4444) else onSurfaceColor,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("$${item.value}", color = onSurfaceColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+                Icon(
+                    Icons.Outlined.ChevronRight,
+                    contentDescription = null,
+                    tint = mutedColor
+                )
             }
         }
     }
@@ -276,8 +275,8 @@ private fun CheckedOutItemCard(
 /* ---------- Preview ---------- */
 @Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
 @Composable
-private fun PreviewCheckedOutItems() {
+private fun PreviewCheckoutItemsList() {
     MaterialTheme {
-        CheckedOutItemsScreen()
+        CheckoutItemsListScreen()
     }
 }
