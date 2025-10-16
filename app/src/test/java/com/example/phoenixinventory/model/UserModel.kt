@@ -4,7 +4,7 @@ import android.content.Context
 import com.android.volley.Request
 import com.android.volley.toolbox.JsonArrayRequest
 import com.android.volley.toolbox.JsonObjectRequest
-import com.example.myapp.network.VolleySingleton
+import com.example.lebackend.network.VolleySingleton
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -31,7 +31,7 @@ class UserModel(private val context: Context) {
                         email = obj.optString("Email"),
 			phoneNum = obj.optString("Phone_number"),
 			ZAID= obj.optString("ID_number"),
-                        role = obj.optString("Role")
+                        role = obj.optInt("Role"),
 			driversLicense = obj.optBoolean("Drivers_license"), //obj.optBoolean
 			password = obj.optString("Password")
 
@@ -57,12 +57,12 @@ class UserModel(private val context: Context) {
             { obj: JSONObject ->
                 val user = User(		//Builds the User instance with received DB data
                         userId = obj.optInt("User_ID"),
-			name = obj.optString("Name"),
-			surname = obj.optString("Surname"),
-                        email = obj.optString("Email"),
+			              name = obj.optString("Name"),
+			              surname = obj.optString("Surname"),
+                          email = obj.optString("Email"),
 			phoneNum = obj.optString("Phone_number"),
 			ZAID = obj.optString("ID_number"),
-                        role = obj.optString("Role")
+                        role = obj.optInt("Role"),
 			driversLicense = obj.optBoolean("Drivers_license"),
 			password = obj.optString("Password")
                 )
@@ -95,19 +95,17 @@ class UserModel(private val context: Context) {
             { obj: JSONObject ->
                 val created = User(
 
-                        userId = obj.optInt("User_ID"),
-			name = obj.optString("Name"),
-			surname = obj.optString("Surname"),
-                        email = obj.optString("Email"),
-			phoneNum = obj.optString("Phone_number"),
-			ZAID = obj.optString("ID_number"),
-                        role = obj.optString("Role")
-			//company = obj.optString("Company")
-			driversLicense = obj.optBoolean("Drivers_license"),
-			password = obj.optString("Password")
-
-			//Acknowledge. If not received; error
-
+                    userId = obj.optInt("User_ID"),
+			        name = obj.optString("Name"),
+			        surname = obj.optString("Surname"),
+                    email = obj.optString("Email"),
+			        phoneNum = obj.optString("Phone_number"),
+			        ZAID = obj.optString("ID_number"),
+                    role = obj.optInt("Role"),
+			        //company = obj.optString("Company"),
+			        driversLicense = obj.optBoolean("Drivers_license"),
+			        password = obj.optString("Password")
+			        //Acknowledge. If not received; error
                 )
                 callback.onSuccess(created)
             },
@@ -117,23 +115,40 @@ class UserModel(private val context: Context) {
     }
 
     // UPDATE single user by id (POST) √
-    fun updateUser(user: User, callback: SimpleCallback) {
+    fun updateUser(user: User, callback: ResultCallback<User>) {
         val url = "$BASE_URL&CRUD=UPDATE"
         val payload = JSONObject().apply {//Creating JSON object to send to PHP
 
-		put("Name", user.name)
-		put("Surname", user.surname)
-		put("Email", user.email)
-		put("Phone_number",user.phoneNum)
-		put("ID_number", user.ZAID)
-		put("Role", user.role)
-		//put("Company", user.company)
-		put("Drivers_license", user.driversLicense)
-		put("Password", user.password)
+		    put("User_ID", user.userId)
+		    put("Name", user.name)
+		    put("Surname", user.surname)
+		    put("Email", user.email)
+		    put("Phone_number",user.phoneNum)
+		    put("ID_number", user.ZAID)
+		    put("Role", user.role)
+		    //put("Company", user.company)
+		    put("Drivers_license", user.driversLicense)
+		    put("Password", user.password)
 
         }
-        val req = JsonObjectRequest(Request.Method.POST, url, payload,	//Acknowledge. If not received; error
-            { _ -> callback.onSuccess() },
+        val req = JsonObjectRequest(Request.Method.POST, url, payload,
+            { obj: JSONObject ->
+                val updated = User(
+
+                    userId = obj.optInt("User_ID"),
+                    name = obj.optString("Name"),
+                    surname = obj.optString("Surname"),
+                    email = obj.optString("Email"),
+                    phoneNum = obj.optString("Phone_number"),
+                    ZAID = obj.optString("ID_number"),
+                    role = obj.optInt("Role"),
+                    //company = obj.optString("Company"),
+                    driversLicense = obj.optBoolean("Drivers_license"),
+                    password = obj.optString("Password")
+                    //Acknowledge. If not received; error
+                )
+                callback.onSuccess(updated)
+            },
             { err -> callback.onError(err.message ?: "Network error") }
         )
         VolleySingleton.addToQueue(context, req)

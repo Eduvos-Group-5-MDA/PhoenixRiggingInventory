@@ -14,9 +14,9 @@ class UserController(context: Context) {
     private val model = UserModel(context)
 
     fun hashText(input: String): String {
-	val bytes = input.toByteArray(Charsets.UTF_8)
-	val md = MessageDigest.getInstance("SHA-256") //the hash
-	val digest = md.digest(bytes)
+		val bytes = input.toByteArray(Charsets.UTF_8)
+		val md = MessageDigest.getInstance("SHA-256") //the hash
+		val digest = md.digest(bytes)
     return digest.joinToString("") { "%02x".format(it) }
     }
 
@@ -90,19 +90,13 @@ class UserController(context: Context) {
 
     fun fetchUserById(userId: String, callback: ResultCallback<User>) { //√
 	if (validateID(userId)) {
-		user = model.getUserById(userId.toInt(), callback)
+		val user = model.getUserById(userId.toInt(), callback)
+		
 		if user.name == null { //ID not in DB
 			view.UserDNE()
-		} 
-		return user //so that front-end can use user.name etc. to populate
-/*front-end:
+		} //currently bugged; edge-case
+		return user
 
-userId = label.text
-user = controller.fetchUserById(userId)
-
-label.text = user.name
-
-:)*/
 	}
     }
 
@@ -131,7 +125,7 @@ label.text = user.name
 			password = hashText(password)
 			)
         	model.createUser(user, callback)
-	}
+		}
     }
 
     fun updateUser(
@@ -159,11 +153,8 @@ label.text = user.name
 			password = hashText(password)
 			)
         	model.updateUser(user, callback)
-	}
+		}
     }
-
-spot any errors/issues/googidy-gag/gibbidy-gook?
-
     fun deleteUser(userId: String, callback: SimpleCallback) { //√
 	if (validateID(userId)) {
 		model.deleteUser(userId.toInt(), callback)
