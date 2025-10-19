@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 // Get all users
@@ -46,7 +47,13 @@ router.get('/current/me', async (req, res) => {
 // Create new user
 router.post('/', async (req, res) => {
     try {
-        const user = await User.create(req.body);
+        const { password, ...rest } = req.body;
+        if (!password) {
+            return res.status(400).json({ error: 'Password is required' });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+        const user = await User.create({ ...rest, passwordHash });
         res.status(201).json(user);
     } catch (error) {
         console.error('Error creating user:', error);
@@ -57,7 +64,13 @@ router.post('/', async (req, res) => {
 // Update user
 router.put('/:id', async (req, res) => {
     try {
-        const user = await User.update(req.params.id, req.body);
+        const { password, ...rest } = req.body;
+        let passwordHash;
+        if (password) {
+            passwordHash = await bcrypt.hash(password, 10);
+        }
+
+        const user = await User.update(req.params.id, { ...rest, passwordHash });
         if (user) {
             res.json(user);
         } else {

@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.collectAsState
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,21 +43,49 @@ fun ItemEditScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val item = remember { DataRepository.getItemById(itemId) }
+    val scope = rememberCoroutineScope()
+    val items by DataRepository.itemsFlow().collectAsState()
+    val item = remember(items, itemId) { items.find { it.id == itemId } }
+
+    var fetchError by remember { mutableStateOf<String?>(null) }
 
     // Edit state
-    var editName by remember { mutableStateOf(item?.name ?: "") }
-    var editSerial by remember { mutableStateOf(item?.serialId ?: "") }
-    var editDesc by remember { mutableStateOf(item?.description ?: "") }
-    var editCondition by remember { mutableStateOf(item?.condition ?: "Good") }
-    var editStatus by remember { mutableStateOf(item?.status ?: "Available") }
-    var editValue by remember { mutableStateOf(item?.value?.toString() ?: "0") }
-    var editPermanent by remember { mutableStateOf(item?.permanentCheckout ?: false) }
-    var editPermission by remember { mutableStateOf(item?.permissionNeeded ?: false) }
-    var editLicense by remember { mutableStateOf(item?.driversLicenseNeeded ?: false) }
+    var editName by remember { mutableStateOf("") }
+    var editSerial by remember { mutableStateOf("") }
+    var editDesc by remember { mutableStateOf("") }
+    var editCondition by remember { mutableStateOf("Good") }
+    var editStatus by remember { mutableStateOf("Available") }
+    var editValue by remember { mutableStateOf("0") }
+    var editPermanent by remember { mutableStateOf(false) }
+    var editPermission by remember { mutableStateOf(false) }
+    var editLicense by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
 
     val conditions = listOf("Excellent", "Good", "Fair", "Poor")
     val statuses = listOf("Available", "Checked Out", "Under Maintenance", "Retired", "Damaged", "Lost", "Stolen")
+
+    LaunchedEffect(itemId) {
+        if (item == null) {
+            val fetched = DataRepository.getItemById(itemId)
+            if (fetched == null) {
+                fetchError = "Item not found"
+            }
+        }
+    }
+
+    LaunchedEffect(item) {
+        if (item != null) {
+            editName = item.name
+            editSerial = item.serialId
+            editDesc = item.description
+            editCondition = item.condition
+            editStatus = item.status
+            editValue = item.value.toString()
+            editPermanent = item.permanentCheckout
+            editPermission = item.permissionNeeded
+            editLicense = item.driversLicenseNeeded
+        }
+    }
 
     if (item == null) {
         Box(
@@ -64,7 +94,11 @@ fun ItemEditScreen(
                 .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
             contentAlignment = Alignment.Center
         ) {
-            Text("Item not found", color = OnDark)
+            if (fetchError != null) {
+                Text(fetchError ?: "Item not found", color = OnDark)
+            } else {
+                CircularProgressIndicator(color = OnDark)
+            }
         }
         return
     }
@@ -155,17 +189,28 @@ fun ItemEditScreen(
                         permissionNeeded = editPermission,
                         driversLicenseNeeded = editLicense
                     )
-                    DataRepository.updateItem(updatedItem)
-                    Toast.makeText(ctx, "Item updated", Toast.LENGTH_SHORT).show()
-                    onBack()
+                    scope.launch {
+                        isSaving = true
+                        val result = DataRepository.updateItem(updatedItem)
+                        isSaving = false
+                        result.onSuccess {
+                            Toast.makeText(ctx, "Item updated", Toast.LENGTH_SHORT).show()
+                            onBack()
+                        }.onFailure { error ->
+                            Toast.makeText(ctx, error.message ?: "Failed to update item", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = OnDark),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                enabled = !isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Save Changes", fontWeight = FontWeight.SemiBold)
+                Text(if (isSaving) "Saving..." else "Save Changes", fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(Modifier.height(12.dp))

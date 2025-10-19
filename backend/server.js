@@ -6,6 +6,7 @@ require('dotenv').config();
 const itemsRoutes = require('./routes/items');
 const usersRoutes = require('./routes/users');
 const checkoutsRoutes = require('./routes/checkouts');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/items', itemsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/checkouts', checkoutsRoutes);
@@ -60,7 +62,7 @@ app.use((req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`API Documentation:`);
     console.log(`  - Items: http://localhost:${PORT}/api/items`);
@@ -74,5 +76,13 @@ process.on('SIGTERM', () => {
     console.log('SIGTERM signal received: closing HTTP server');
     server.close(() => {
         console.log('HTTP server closed');
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server');
+    server.close(() => {
+        console.log('HTTP server closed');
+        process.exit(0);
     });
 });

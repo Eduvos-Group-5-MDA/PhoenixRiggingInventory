@@ -1,9 +1,17 @@
 package com.example.phoenixinventory.core
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.phoenixinventory.data.InventoryItem
+import com.example.phoenixinventory.data.DataRepository
+import kotlinx.coroutines.launch
 
 object Dest {
     const val HOME = "home"
@@ -35,6 +43,8 @@ object Dest {
 @Composable
 fun AppNavHost() {
     val nav = rememberNavController()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     NavHost(navController = nav, startDestination = Dest.HOME) {
 
@@ -68,19 +78,28 @@ fun AppNavHost() {
         composable(Dest.REGISTER) {
             RegisterScreen(
                 onBack = { nav.navigate(Dest.HOME) },
-                onRegistered = { nav.popBackStack(Dest.HOME, inclusive = false) },
+                onRegistered = {
+                    nav.navigate(Dest.LOGIN) {
+                        launchSingleTop = true
+                        popUpTo(Dest.REGISTER) { inclusive = true }
+                    }
+                },
                 onGoToLogin = { nav.navigate(Dest.LOGIN) }
             )
         }
 
         composable(Dest.DASHBOARD) {
-            val totalItems = com.example.phoenixinventory.data.DataRepository.getAllItems().size
-            val checkedOut = com.example.phoenixinventory.data.DataRepository.getCheckedOutCount()
-            val totalValue = com.example.phoenixinventory.data.DataRepository.getTotalValue()
-            val itemsOutOver30Days = com.example.phoenixinventory.data.DataRepository.getItemsOutLongerThan(30).size
-            val stolenLostDamagedValue = com.example.phoenixinventory.data.DataRepository.getStolenLostDamagedValue()
-            val stolenLostDamagedCount = com.example.phoenixinventory.data.DataRepository.getStolenLostDamagedCount()
-            val currentUser = com.example.phoenixinventory.data.DataRepository.getCurrentUser()
+            val items by DataRepository.itemsFlow().collectAsState()
+            val checkedOutItems by DataRepository.checkedOutItemsFlow().collectAsState()
+            val stats by DataRepository.statsFlow().collectAsState()
+            val currentUser by DataRepository.currentUserFlow().collectAsState()
+
+            val totalItems = items.size
+            val checkedOut = stats.checkedOutCount
+            val totalValue = stats.totalValue
+            val itemsOutOver30Days = checkedOutItems.count { it.daysOut >= 30 }
+            val stolenLostDamagedValue = stats.stolenLostDamagedValue
+            val stolenLostDamagedCount = stats.stolenLostDamagedCount
 
             DashboardScreen(
                 navController = nav, // ✅ pass NavHostController
@@ -94,6 +113,7 @@ fun AppNavHost() {
                 stolenLostDamagedValue = stolenLostDamagedValue,
                 stolenLostDamagedCount = stolenLostDamagedCount,
                 onLogout = {
+                    DataRepository.logout()
                     nav.navigate(Dest.HOME) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -113,7 +133,7 @@ fun AppNavHost() {
             AddItemScreen(
                 onBack = { nav.popBackStack() },
                 onSubmit = { newItem ->
-                    val item = com.example.phoenixinventory.data.InventoryItem(
+                    val item = InventoryItem(
                         name = newItem.name,
                         serialId = newItem.serialId,
                         description = newItem.description,
@@ -123,8 +143,15 @@ fun AppNavHost() {
                         permissionNeeded = newItem.permissionNeeded,
                         driversLicenseNeeded = newItem.driversLicenseNeeded
                     )
-                    com.example.phoenixinventory.data.DataRepository.addItem(item)
-                    nav.popBackStack()
+                    scope.launch {
+                        val result = DataRepository.addItem(item)
+                        result.onSuccess {
+                            Toast.makeText(context, "Item added", Toast.LENGTH_SHORT).show()
+                            nav.popBackStack()
+                        }.onFailure { error ->
+                            Toast.makeText(context, error.message ?: "Failed to add item", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 },
                 onCancel = { nav.popBackStack() }
             )

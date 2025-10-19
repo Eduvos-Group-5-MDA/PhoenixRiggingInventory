@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,12 +40,10 @@ fun CheckInItemsListScreen(
     var searchQuery by remember { mutableStateOf("") }
     var filterDaysOut by remember { mutableStateOf("All") }
 
-    // Get current user and their checked out items
-    val currentUser = remember { DataRepository.getCurrentUser() }
-    val allCheckedOutItems = remember { DataRepository.getCheckedOutItems() }
+    val currentUser by DataRepository.currentUserFlow().collectAsState()
+    val allCheckedOutItems by DataRepository.checkedOutItemsFlow().collectAsState()
 
-    // Filter to only show items checked out by current user
-    val myCheckedOutItems = remember(allCheckedOutItems) {
+    val myCheckedOutItems = remember(currentUser, allCheckedOutItems) {
         allCheckedOutItems.filter { it.user.id == currentUser.id }
     }
 

@@ -12,6 +12,11 @@ CREATE TABLE users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     role VARCHAR(50) NOT NULL CHECK (role IN ('Admin', 'Manager', 'Employee')),
+    password_hash TEXT NOT NULL,
+    phone VARCHAR(50),
+    company VARCHAR(255),
+    driver_license BOOLEAN NOT NULL DEFAULT FALSE,
+    employee_id VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -65,10 +70,10 @@ CREATE TRIGGER update_inventory_items_updated_at BEFORE UPDATE
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert sample data
-INSERT INTO users (id, name, email, role) VALUES
-    ('user1', 'John Doe', 'stadlerkieran@gmail.com', 'Employee'),
-    ('user2', 'Jane Smith', 'jane.smith@example.com', 'Manager'),
-    ('user3', 'Mike Johnson', 'mike.j@example.com', 'Employee');
+INSERT INTO users (id, name, email, role, password_hash, phone, company, driver_license, employee_id) VALUES
+    ('user1', 'John Doe', 'stadlerkieran@gmail.com', 'Employee', '$2a$10$7EqJtq98hPqEX7fNLEnixe/LO8G3cV8Wp8p3D3S5aaJ6dHe4blY.G', '555-0101', 'Phoenix Rigging', TRUE, 'EMP-001'),
+    ('user2', 'Jane Smith', 'jane.smith@example.com', 'Manager', '$2a$10$7EqJtq98hPqEX7fNLEnixe/LO8G3cV8Wp8p3D3S5aaJ6dHe4blY.G', '555-0102', 'Phoenix Rigging', FALSE, 'EMP-002'),
+    ('user3', 'Mike Johnson', 'mike.j@example.com', 'Employee', '$2a$10$7EqJtq98hPqEX7fNLEnixe/LO8G3cV8Wp8p3D3S5aaJ6dHe4blY.G', '555-0103', 'Phoenix Rigging', FALSE, 'EMP-003');
 
 INSERT INTO inventory_items (id, name, serial_id, description, condition, status, value, permanent_checkout, permission_needed, drivers_license_needed) VALUES
     ('item1', 'Safety Harness Type A', 'SH-001', 'Professional safety harness for rigging operations', 'Excellent', 'Available', 450.0, FALSE, FALSE, FALSE),

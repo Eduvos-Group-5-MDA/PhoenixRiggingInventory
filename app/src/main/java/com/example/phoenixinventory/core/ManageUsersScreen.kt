@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,7 +36,8 @@ fun ManageUsersScreen(
     val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
 
-    val users = remember { DataRepository.getAllUsers() }
+    val users by DataRepository.usersFlow().collectAsState()
+    val checkedOutItems by DataRepository.checkedOutItemsFlow().collectAsState()
     var selectedUser by remember { mutableStateOf<User?>(null) }
 
     Box(
@@ -119,8 +121,7 @@ fun ManageUsersScreen(
                         DetailRow("Role", selectedUser!!.role)
 
                         // Get items checked out by this user
-                        val userCheckouts = DataRepository.getCheckedOutItems()
-                            .filter { it.user.id == selectedUser!!.id }
+                        val userCheckouts = checkedOutItems.filter { it.user.id == selectedUser!!.id }
 
                         Spacer(Modifier.height(8.dp))
                         DetailRow("Items Checked Out", "${userCheckouts.size}")

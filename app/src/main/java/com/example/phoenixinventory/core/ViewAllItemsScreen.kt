@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +39,7 @@ fun ViewAllItemsScreen(
     val primaryContainerColor = AppColors.PrimaryContainer
     var searchQuery by remember { mutableStateOf("") }
     var filterStatus by remember { mutableStateOf("All") }
-    val items = remember { DataRepository.getAllItems() }
+    val items by DataRepository.itemsFlow().collectAsState()
 
     val filteredItems = items.filter { item ->
         val matchesSearch = item.name.contains(searchQuery, ignoreCase = true) ||

@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.collectAsState
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,8 +40,21 @@ fun ItemDeleteScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val item = remember { DataRepository.getItemById(itemId) }
+    val scope = rememberCoroutineScope()
+    val items by DataRepository.itemsFlow().collectAsState()
+    val item = remember(items, itemId) { items.find { it.id == itemId } }
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var fetchError by remember { mutableStateOf<String?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
+
+    LaunchedEffect(itemId) {
+        if (item == null) {
+            val fetched = DataRepository.getItemById(itemId)
+            if (fetched == null) {
+                fetchError = "Item not found"
+            }
+        }
+    }
 
     if (item == null) {
         Box(
@@ -48,7 +63,11 @@ fun ItemDeleteScreen(
                 .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
             contentAlignment = Alignment.Center
         ) {
-            Text("Item not found", color = OnDark)
+            if (fetchError != null) {
+                Text(fetchError ?: "Item not found", color = OnDark)
+            } else {
+                CircularProgressIndicator(color = OnDark)
+            }
         }
         return
     }
@@ -188,12 +207,28 @@ fun ItemDeleteScreen(
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        DataRepository.removeItem(itemId)
-                        Toast.makeText(ctx, "Item deleted successfully", Toast.LENGTH_SHORT).show()
-                        onBack()
-                    }) {
-                        Text("Delete", color = DangerRed, fontWeight = FontWeight.Bold)
+                    TextButton(
+                        enabled = !isDeleting,
+                        onClick = {
+                            scope.launch {
+                                isDeleting = true
+                                val result = DataRepository.removeItem(itemId)
+                                isDeleting = false
+                                result.onSuccess {
+                                    Toast.makeText(ctx, "Item deleted successfully", Toast.LENGTH_SHORT).show()
+                                    showConfirmDialog = false
+                                    onBack()
+                                }.onFailure { error ->
+                                    Toast.makeText(ctx, error.message ?: "Failed to delete item", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    ) {
+                        Text(
+                            if (isDeleting) "Deleting..." else "Delete",
+                            color = DangerRed,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 },
                 dismissButton = {

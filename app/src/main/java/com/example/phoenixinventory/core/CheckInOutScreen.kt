@@ -21,6 +21,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
+import kotlinx.coroutines.flow.collectAsState
+import kotlinx.coroutines.launch
 
 /* ---------- Palette ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -38,13 +40,32 @@ fun CheckInOutScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val item = remember { DataRepository.getItemById(itemId) }
-    val users = remember { DataRepository.getAllUsers() }
-    val currentUser = remember { DataRepository.getCurrentUser() }
+    val scope = rememberCoroutineScope()
 
+    val items by DataRepository.itemsFlow().collectAsState()
+    val users by DataRepository.usersFlow().collectAsState()
+    val currentUser by DataRepository.currentUserFlow().collectAsState()
+
+    val item = remember(items, itemId) { items.find { it.id == itemId } }
     val isCheckOut = item?.status == "Available"
+
     var selectedUserId by remember { mutableStateOf(currentUser.id) }
     var notes by remember { mutableStateOf("") }
+    var fetchError by remember { mutableStateOf<String?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(itemId) {
+        if (item == null) {
+            val fetched = DataRepository.getItemById(itemId)
+            if (fetched == null) {
+                fetchError = "Item not found"
+            }
+        }
+    }
+
+    LaunchedEffect(currentUser.id) {
+        selectedUserId = currentUser.id
+    }
 
     if (item == null) {
         Box(
@@ -53,7 +74,11 @@ fun CheckInOutScreen(
                 .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
             contentAlignment = Alignment.Center
         ) {
-            Text("Item not found", color = OnDark)
+            if (fetchError != null) {
+                Text(fetchError ?: "Item not found", color = OnDark)
+            } else {
+                CircularProgressIndicator(color = OnDark)
+            }
         }
         return
     }
@@ -176,7 +201,10 @@ fun CheckInOutScreen(
                                 value = selectedUser?.name ?: "",
                                 onValueChange = {},
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                                modifier = Modifier.menuAnchor().fillMaxWidth().clip(RoundedCornerShape(14.dp)),
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp)),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = PrimaryContainer,
                                     unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
@@ -219,7 +247,9 @@ fun CheckInOutScreen(
                                 focusedTextColor = OnDark,
                                 unfocusedTextColor = OnDark
                             ),
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
                         )
                     }
                 }
@@ -230,21 +260,40 @@ fun CheckInOutScreen(
             /* ---------- Action Button ---------- */
             Button(
                 onClick = {
-                    if (isCheckOut) {
-                        DataRepository.checkOutItem(itemId, selectedUserId, notes)
-                        Toast.makeText(ctx, "${item.name} checked out", Toast.LENGTH_SHORT).show()
-                    } else {
-                        DataRepository.checkInItem(itemId)
-                        Toast.makeText(ctx, "${item.name} checked in", Toast.LENGTH_SHORT).show()
+                    if (isProcessing) return@Button
+                    if (isCheckOut && selectedUserId.isBlank()) {
+                        Toast.makeText(ctx, "Select a user", Toast.LENGTH_SHORT).show()
+                        return@Button
                     }
-                    onBack()
+                    scope.launch {
+                        isProcessing = true
+                        val result = if (isCheckOut) {
+                            DataRepository.checkOutItem(itemId, selectedUserId, notes)
+                        } else {
+                            DataRepository.checkInItem(itemId)
+                        }
+                        isProcessing = false
+                        result.onSuccess {
+                            Toast.makeText(
+                                ctx,
+                                if (isCheckOut) "${item.name} checked out" else "${item.name} checked in",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            onBack()
+                        }.onFailure { error ->
+                            Toast.makeText(ctx, error.message ?: "Action failed", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isCheckOut) Color(0xFF0A6CFF) else Color(0xFF17C964),
                     contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                enabled = !isProcessing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
                 Icon(
                     if (isCheckOut) Icons.Outlined.Assignment else Icons.Outlined.CheckCircle,
@@ -252,7 +301,12 @@ fun CheckInOutScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (isCheckOut) "Confirm Check Out" else "Confirm Check In",
+                    when {
+                        isProcessing && isCheckOut -> "Checking out..."
+                        isProcessing -> "Checking in..."
+                        isCheckOut -> "Confirm Check Out"
+                        else -> "Confirm Check In"
+                    },
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -263,7 +317,10 @@ fun CheckInOutScreen(
                 onClick = onBack,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = OnDark),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+                enabled = !isProcessing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
                 Text("Cancel")
             }

@@ -9,10 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,14 +20,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.input.KeyboardType
+import com.example.phoenixinventory.data.DataRepository
 import com.example.phoenixinventory.ui.theme.AppColors
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -53,6 +52,9 @@ fun LoginScreen(
     var showPassword by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var pwdError by remember { mutableStateOf<String?>(null) }
+    var generalError by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     fun validate(): Boolean {
         emailError =
@@ -79,7 +81,6 @@ fun LoginScreen(
                 .padding(16.dp)
         ) {
 
-            // Top bar
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -103,7 +104,6 @@ fun LoginScreen(
                 Text("Login", color = onSurfaceColor, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
 
-            // Card
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = surfaceColor,
@@ -134,7 +134,11 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(20.dp))
 
-                    // Email
+                    generalError?.let {
+                        Text(it, color = Color(0xFFFF4C4C), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(8.dp))
+                    }
+
                     Text("Email", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
@@ -153,25 +157,23 @@ fun LoginScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = primaryContainerColor,
                             unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
-                            errorBorderColor = Color(0xFFFF4C4C), // red border when invalid
+                            errorBorderColor = Color(0xFFFF4C4C),
                             cursorColor = onSurfaceColor,
                             focusedTextColor = onSurfaceColor,
                             unfocusedTextColor = onSurfaceColor,
-                            errorTextColor = onSurfaceColor, // keep white text even when invalid
+                            errorTextColor = onSurfaceColor,
                             focusedPlaceholderColor = mutedColor,
                             unfocusedPlaceholderColor = mutedColor,
-                            errorPlaceholderColor = mutedColor, // gray placeholder in error state
-                            errorSupportingTextColor = Color(0xFFFF4C4C) // red error message
+                            errorPlaceholderColor = mutedColor,
+                            errorSupportingTextColor = Color(0xFFFF4C4C)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
                     )
 
-//hello
                     Spacer(Modifier.height(14.dp))
 
-                    // Password
                     Text("Password", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
@@ -200,67 +202,79 @@ fun LoginScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = primaryContainerColor,
                             unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
-                            errorBorderColor = Color(0xFFFF4C4C), // red border when invalid
+                            errorBorderColor = Color(0xFFFF4C4C),
                             cursorColor = onSurfaceColor,
                             focusedTextColor = onSurfaceColor,
                             unfocusedTextColor = onSurfaceColor,
-                            errorTextColor = onSurfaceColor, // keep white text even when invalid
+                            errorTextColor = onSurfaceColor,
                             focusedPlaceholderColor = mutedColor,
                             unfocusedPlaceholderColor = mutedColor,
-                            errorPlaceholderColor = mutedColor, // gray placeholder in error state
-                            errorSupportingTextColor = Color(0xFFFF4C4C) // red error message
+                            errorPlaceholderColor = mutedColor,
+                            errorSupportingTextColor = Color(0xFFFF4C4C)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
                     )
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
 
-                    // Forgot Password link
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
                         Text(
-                            "Forgot Password?",
-                            color = onSurfaceColor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clickable { onForgotPassword() }
+                            text = "Forgot Password?",
+                            color = primaryContainerColor,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable(onClick = onForgotPassword)
                         )
                     }
 
                     Spacer(Modifier.height(18.dp))
 
-                    // Login button (demo flow → navigate on success)
                     Button(
                         onClick = {
-                            if (validate()) {
-                                Toast.makeText(context, "Logged in (demo)", Toast.LENGTH_SHORT).show()
-                                onLoginSuccess() // ← navigate to Dashboard route in AppNav
+                            if (validate() && !isLoading) {
+                                generalError = null
+                                isLoading = true
+                                scope.launch {
+                                    val result = DataRepository.login(email.trim(), password)
+                                    isLoading = false
+                                    result.onSuccess {
+                                        Toast.makeText(context, "Welcome back!", Toast.LENGTH_SHORT).show()
+                                        onLoginSuccess()
+                                    }.onFailure { error ->
+                                        generalError = error.message ?: "Failed to login"
+                                    }
+                                }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor,
-                            contentColor = onSurfaceColor
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = onSurfaceColor),
                         shape = RoundedCornerShape(16.dp),
+                        enabled = !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
                     ) {
-                        Text("Login", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        Icon(Icons.Outlined.Login, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (isLoading) "Signing In..." else "Sign In", fontWeight = FontWeight.SemiBold)
                     }
 
-                    Spacer(Modifier.height(14.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text("Don't have an account? ", color = mutedColor)
                         Text(
-                            "Register",
-                            color = onSurfaceColor,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { onGoToRegister() }
+                            text = "Register",
+                            color = primaryContainerColor,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable(onClick = onGoToRegister)
                         )
                     }
                 }
@@ -269,15 +283,10 @@ fun LoginScreen(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
+@Preview(showBackground = true)
 @Composable
 private fun PreviewLogin() {
     MaterialTheme {
-        LoginScreen(
-            onBack = {},
-            onLoginSuccess = {},
-            onGoToRegister = {},
-            onForgotPassword = {}
-        )
+        LoginScreen(onBack = {}, onLoginSuccess = {}, onGoToRegister = {}, onForgotPassword = {})
     }
 }

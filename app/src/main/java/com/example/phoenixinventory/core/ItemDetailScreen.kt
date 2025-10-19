@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,7 +35,14 @@ fun ItemDetailScreen(
     val mutedColor = AppColors.Muted
     val primaryColor = AppColors.Primary
     val primaryContainerColor = AppColors.PrimaryContainer
-    val item = remember { DataRepository.getItemById(itemId) }
+    val items by DataRepository.itemsFlow().collectAsState()
+    val item = remember(items, itemId) { items.find { it.id == itemId } }
+
+    LaunchedEffect(itemId) {
+        if (item == null) {
+            DataRepository.getItemById(itemId)
+        }
+    }
 
     if (item == null) {
         Box(

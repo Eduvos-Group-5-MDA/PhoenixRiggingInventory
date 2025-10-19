@@ -26,28 +26,62 @@ class User {
     }
 
     static async create(userData) {
-        const id = uuidv4();
-        const { name, email, role } = userData;
+        const id = userData.id || uuidv4();
+        const {
+            name,
+            email,
+            role = 'Employee',
+            passwordHash,
+            phone = null,
+            company = null,
+            driverLicense = false,
+            employeeId = null
+        } = userData;
 
         const result = await pool.query(
-            `INSERT INTO users (id, name, email, role)
-             VALUES ($1, $2, $3, $4)
+            `INSERT INTO users (id, name, email, role, password_hash, phone, company, driver_license, employee_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING *`,
-            [id, name, email, role]
+            [id, name, email, role, passwordHash, phone, company, driverLicense, employeeId]
         );
         return this.mapFromDb(result.rows[0]);
     }
 
     static async update(id, userData) {
-        const { name, email, role } = userData;
+        const {
+            name,
+            email,
+            role,
+            phone = null,
+            company = null,
+            driverLicense = false,
+            employeeId = null,
+            passwordHash
+        } = userData;
 
-        const result = await pool.query(
-            `UPDATE users
-             SET name = $2, email = $3, role = $4
-             WHERE id = $1
-             RETURNING *`,
-            [id, name, email, role]
-        );
+        const fields = [
+            name,
+            email,
+            role,
+            phone,
+            company,
+            driverLicense,
+            employeeId
+        ];
+
+        let query = `UPDATE users
+             SET name = $2, email = $3, role = $4,
+                 phone = $5, company = $6, driver_license = $7, employee_id = $8`;
+        const values = [id, ...fields];
+
+        if (passwordHash) {
+            query += `, password_hash = $9`;
+            values.push(passwordHash);
+        }
+
+        query += ` WHERE id = $1 RETURNING *`;
+
+        const result = await pool.query(query, values);
         return result.rows.length > 0 ? this.mapFromDb(result.rows[0]) : null;
     }
 
@@ -74,8 +108,32 @@ class User {
             name: row.name,
             email: row.email,
             role: row.role,
+            phone: row.phone,
+            company: row.company,
+            driverLicense: row.driver_license,
+            employeeId: row.employee_id,
             createdAt: row.created_at
         };
+    }
+
+    static async verifyCredentials(email, password, bcrypt) {
+        const user = await this.getByEmail(email);
+        if (!user) {
+            return null;
+        }
+
+        const result = await pool.query(
+            'SELECT password_hash FROM users WHERE id = $1',
+            [user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        const passwordHash = result.rows[0].password_hash;
+        const isValid = await bcrypt.compare(password, passwordHash);
+        return isValid ? user : null;
     }
 }
 

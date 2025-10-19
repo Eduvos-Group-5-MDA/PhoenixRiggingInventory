@@ -23,6 +23,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
+import kotlinx.coroutines.flow.collectAsState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +33,21 @@ fun UserEditScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val user = remember { DataRepository.getUserById(userId) }
+    val scope = rememberCoroutineScope()
+
+    val users by DataRepository.usersFlow().collectAsState()
+    val user = remember(users, userId) { users.find { it.id == userId } }
+    var fetchError by remember { mutableStateOf<String?>(null) }
+    var isSaving by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userId) {
+        if (user == null) {
+            val fetched = DataRepository.getUserById(userId)
+            if (fetched == null) {
+                fetchError = "User not found"
+            }
+        }
+    }
 
     val backgroundColor = MaterialTheme.colorScheme.background
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -40,10 +56,17 @@ fun UserEditScreen(
     val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
 
-    // Edit state
     var editName by remember { mutableStateOf(user?.name ?: "") }
     var editEmail by remember { mutableStateOf(user?.email ?: "") }
     var editRole by remember { mutableStateOf(user?.role ?: "Employee") }
+
+    LaunchedEffect(user) {
+        if (user != null) {
+            editName = user.name
+            editEmail = user.email
+            editRole = user.role
+        }
+    }
 
     val roles = listOf("Admin", "Manager", "Employee")
 
@@ -54,7 +77,11 @@ fun UserEditScreen(
                 .background(backgroundColor),
             contentAlignment = Alignment.Center
         ) {
-            Text("User not found", color = onSurfaceColor)
+            if (fetchError != null) {
+                Text(fetchError ?: "User not found", color = onSurfaceColor)
+            } else {
+                CircularProgressIndicator(color = onSurfaceColor)
+            }
         }
         return
     }
@@ -76,7 +103,6 @@ fun UserEditScreen(
                 .padding(16.dp)
         ) {
 
-            /* ---------- Header ---------- */
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -102,7 +128,6 @@ fun UserEditScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            /* ---------- Edit Form ---------- */
             Surface(
                 color = surfaceColor,
                 shape = RoundedCornerShape(20.dp),
@@ -121,32 +146,42 @@ fun UserEditScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            /* ---------- Action Buttons ---------- */
             Button(
                 onClick = {
                     if (editName.isBlank() || editEmail.isBlank()) {
                         Toast.makeText(ctx, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    val updatedUser = user.copy(
-                        name = editName.trim(),
-                        email = editEmail.trim(),
-                        role = editRole
-                    )
-                    DataRepository.updateUser(updatedUser)
-                    Toast.makeText(ctx, "User updated", Toast.LENGTH_SHORT).show()
-                    onBack()
+                    scope.launch {
+                        isSaving = true
+                        val updatedUser = user.copy(
+                            name = editName.trim(),
+                            email = editEmail.trim(),
+                            role = editRole
+                        )
+                        val result = DataRepository.updateUser(updatedUser)
+                        isSaving = false
+                        result.onSuccess {
+                            Toast.makeText(ctx, "User updated", Toast.LENGTH_SHORT).show()
+                            onBack()
+                        }.onFailure { error ->
+                            Toast.makeText(ctx, error.message ?: "Failed to update user", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = primaryContainerColor,
                     contentColor = onSurfaceColor
                 ),
+                enabled = !isSaving,
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Save Changes", fontWeight = FontWeight.SemiBold)
+                Text(if (isSaving) "Saving..." else "Save Changes", fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(Modifier.height(12.dp))
@@ -155,7 +190,10 @@ fun UserEditScreen(
                 onClick = onBack,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = onSurfaceColor),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+                enabled = !isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
                 Text("Cancel")
             }
@@ -191,7 +229,9 @@ private fun LabeledField(
             focusedTextColor = onSurfaceColor,
             unfocusedTextColor = onSurfaceColor
         ),
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
     )
 }
 
@@ -206,9 +246,9 @@ private fun DropdownField(
     mutedColor: Color,
     primaryContainerColor: Color
 ) {
-    var expanded by remember { mutableStateOf(false) }
     Text(label, color = onSurfaceColor, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
     Spacer(Modifier.height(6.dp))
+    var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
         OutlinedTextField(
@@ -216,18 +256,21 @@ private fun DropdownField(
             value = selected,
             onValueChange = {},
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth().clip(RoundedCornerShape(14.dp)),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = primaryContainerColor,
                 unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
                 focusedTextColor = onSurfaceColor,
                 unfocusedTextColor = onSurfaceColor
-            )
+            ),
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(option, color = onSurfaceColor) },
                     onClick = {
                         onSelected(option)
                         expanded = false
@@ -239,7 +282,7 @@ private fun DropdownField(
 }
 
 /* ---------- Preview ---------- */
-@Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 private fun PreviewUserEdit() {
     MaterialTheme {

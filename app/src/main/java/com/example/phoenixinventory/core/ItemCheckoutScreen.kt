@@ -21,6 +21,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
+import kotlinx.coroutines.flow.collectAsState
+import kotlinx.coroutines.launch
 
 /* ---------- Palette ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -28,7 +30,6 @@ private val Charcoal = Color(0xFF151A21)
 private val CardDark = Color(0xFF1A2028)
 private val OnDark = Color(0xFFE7EBF2)
 private val Muted = Color(0xFFBFC8D4)
-private val Primary = Color(0xFF0A0C17)
 private val PrimaryContainer = Color(0xFF121729)
 private val CheckoutBlue = Color(0xFF0A6CFF)
 
@@ -39,12 +40,30 @@ fun ItemCheckoutScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val item = remember { DataRepository.getItemById(itemId) }
-    val users = remember { DataRepository.getAllUsers() }
-    val currentUser = remember { DataRepository.getCurrentUser() }
+    val scope = rememberCoroutineScope()
 
+    val items by DataRepository.itemsFlow().collectAsState()
+    val users by DataRepository.usersFlow().collectAsState()
+    val currentUser by DataRepository.currentUserFlow().collectAsState()
+
+    val item = remember(items, itemId) { items.find { it.id == itemId } }
     var selectedUserId by remember { mutableStateOf(currentUser.id) }
     var notes by remember { mutableStateOf("") }
+    var fetchError by remember { mutableStateOf<String?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(itemId) {
+        if (item == null) {
+            val fetched = DataRepository.getItemById(itemId)
+            if (fetched == null) {
+                fetchError = "Item not found"
+            }
+        }
+    }
+
+    LaunchedEffect(currentUser.id) {
+        selectedUserId = currentUser.id
+    }
 
     if (item == null) {
         Box(
@@ -53,12 +72,15 @@ fun ItemCheckoutScreen(
                 .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
             contentAlignment = Alignment.Center
         ) {
-            Text("Item not found", color = OnDark)
+            if (fetchError != null) {
+                Text(fetchError ?: "Item not found", color = OnDark)
+            } else {
+                CircularProgressIndicator(color = OnDark)
+            }
         }
         return
     }
 
-    // Check if item is already checked out
     val isAlreadyCheckedOut = item.status == "Checked Out"
 
     Box(
@@ -77,8 +99,6 @@ fun ItemCheckoutScreen(
                 .background(CardDark)
                 .padding(16.dp)
         ) {
-
-            /* ---------- Header ---------- */
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -104,7 +124,6 @@ fun ItemCheckoutScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            /* ---------- Warning if already checked out ---------- */
             if (isAlreadyCheckedOut) {
                 Surface(
                     color = Color(0xFFF5A524).copy(alpha = 0.15f),
@@ -123,17 +142,17 @@ fun ItemCheckoutScreen(
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            "This item is already checked out. Please check it in first before checking out again.",
+                            "This item is currently checked out. You must check it in before assigning it again.",
                             color = OnDark,
                             fontSize = 14.sp,
                             lineHeight = 20.sp
                         )
                     }
                 }
+
                 Spacer(Modifier.height(16.dp))
             }
 
-            /* ---------- Item Details ---------- */
             Surface(
                 color = Charcoal,
                 shape = RoundedCornerShape(20.dp),
@@ -145,7 +164,7 @@ fun ItemCheckoutScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Inventory, contentDescription = null, tint = OnDark)
                         Spacer(Modifier.width(8.dp))
-                        Text("Item Information", color = OnDark, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                        Text("Item Details", color = OnDark, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
                     }
                     Spacer(Modifier.height(12.dp))
 
@@ -153,29 +172,13 @@ fun ItemCheckoutScreen(
                     DetailRow("Serial/ID", item.serialId)
                     DetailRow("Condition", item.condition)
                     DetailRow("Status", item.status)
-
-                    if (item.permissionNeeded) {
-                        Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Shield, contentDescription = null, tint = Color(0xFFF5A524), modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Permission needed", color = Color(0xFFF5A524), fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
-                    if (item.driversLicenseNeeded) {
-                        Spacer(Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Badge, contentDescription = null, tint = Color(0xFFF5A524), modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Driver's license needed", color = Color(0xFFF5A524), fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
+                    if (item.permissionNeeded) DetailRow("Permission Needed", "Yes")
+                    if (item.driversLicenseNeeded) DetailRow("Driver's License", "Required")
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            /* ---------- Checkout Form ---------- */
             Surface(
                 color = Charcoal,
                 shape = RoundedCornerShape(20.dp),
@@ -184,7 +187,7 @@ fun ItemCheckoutScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Select User", color = OnDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text("Assign To", color = OnDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     Spacer(Modifier.height(8.dp))
 
                     var expanded by remember { mutableStateOf(false) }
@@ -196,7 +199,10 @@ fun ItemCheckoutScreen(
                             value = selectedUser?.name ?: "",
                             onValueChange = {},
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth().clip(RoundedCornerShape(14.dp)),
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp)),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryContainer,
                                 unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
@@ -239,25 +245,35 @@ fun ItemCheckoutScreen(
                             focusedTextColor = OnDark,
                             unfocusedTextColor = OnDark
                         ),
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
                     )
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            /* ---------- Action Buttons ---------- */
             Button(
                 onClick = {
-                    if (isAlreadyCheckedOut) {
-                        Toast.makeText(ctx, "Item is already checked out", Toast.LENGTH_SHORT).show()
-                    } else {
-                        DataRepository.checkOutItem(itemId, selectedUserId, notes)
-                        Toast.makeText(ctx, "${item.name} checked out successfully", Toast.LENGTH_SHORT).show()
-                        onBack()
+                    if (isProcessing) return@Button
+                    if (selectedUserId.isBlank()) {
+                        Toast.makeText(ctx, "Select a user", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    scope.launch {
+                        isProcessing = true
+                        val result = DataRepository.checkOutItem(itemId, selectedUserId, notes)
+                        isProcessing = false
+                        result.onSuccess {
+                            Toast.makeText(ctx, "${item.name} checked out successfully", Toast.LENGTH_SHORT).show()
+                            onBack()
+                        }.onFailure { error ->
+                            Toast.makeText(ctx, error.message ?: "Failed to check out", Toast.LENGTH_LONG).show()
+                        }
                     }
                 },
-                enabled = !isAlreadyCheckedOut,
+                enabled = !isAlreadyCheckedOut && !isProcessing,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = CheckoutBlue,
                     contentColor = Color.White,
@@ -265,11 +281,13 @@ fun ItemCheckoutScreen(
                     disabledContentColor = Charcoal
                 ),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
                 Icon(Icons.Outlined.Assignment, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Confirm Check Out", fontWeight = FontWeight.SemiBold)
+                Text(if (isProcessing) "Checking out..." else "Confirm Check Out", fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(Modifier.height(12.dp))
@@ -278,7 +296,10 @@ fun ItemCheckoutScreen(
                 onClick = onBack,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = OnDark),
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+                enabled = !isProcessing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
                 Text("Cancel")
             }

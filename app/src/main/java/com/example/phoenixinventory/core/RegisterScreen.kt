@@ -9,10 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,16 +22,18 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Locale
+import com.example.phoenixinventory.data.DataRepository
 import com.example.phoenixinventory.ui.theme.AppColors
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 /* ---------- Models ---------- */
 enum class UserRole { Guest, Employee }
@@ -55,6 +54,7 @@ fun RegisterScreen(
     val primaryColor = AppColors.Primary
     val primaryContainerColor = AppColors.PrimaryContainer
     val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     // Inputs
     var first by remember { mutableStateOf("") }
@@ -70,6 +70,8 @@ fun RegisterScreen(
     var showPwd by remember { mutableStateOf(false) }
     var showConfirm by remember { mutableStateOf(false) }
     var acceptTerms by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var generalError by remember { mutableStateOf<String?>(null) }
 
     // Errors
     var firstErr by remember { mutableStateOf<String?>(null) }
@@ -109,7 +111,6 @@ fun RegisterScreen(
                 .background(cardColor)
                 .padding(16.dp)
         ) {
-            /* ---------- Top bar ---------- */
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -131,7 +132,6 @@ fun RegisterScreen(
                 Text("Register", color = onSurfaceColor, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
 
-            /* ---------- Card ---------- */
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = surfaceColor,
@@ -153,6 +153,11 @@ fun RegisterScreen(
                     )
 
                     Spacer(Modifier.height(18.dp))
+
+                    generalError?.let {
+                        Text(it, color = Color(0xFFFF4C4C), fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(12.dp))
+                    }
 
                     LabeledField(
                         label = "Name",
@@ -202,80 +207,41 @@ fun RegisterScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    /* ID Number */
                     LabeledField(
-                        label = "ID Number",
+                        label = "Employee ID",
                         value = idNumber,
-                        onValueChange = { idNumber = it.filter { c -> c.isDigit() }.take(13) },
-                        placeholder = "Enter your South African ID number",
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboard = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+                        onValueChange = { idNumber = it },
+                        placeholder = "Employee or ID number",
+                        modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(Modifier.height(12.dp))
 
-                    /* Role */
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "Role",
-                            color = onSurfaceColor,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        RoleRadio(role = role, onRoleChange = { role = it })
-                    }
-
-                    /* Show company name only when Guest selected */
-                    if (role == UserRole.Guest) {
-                        Spacer(Modifier.height(12.dp))
-                        LabeledField(
-                            label = "Company Name",
-                            value = company,
-                            onValueChange = { company = it },
-                            placeholder = "Your company (optional)",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                    DropdownField(
+                        label = "Role",
+                        options = UserRole.values().toList(),
+                        selected = role,
+                        onSelected = { role = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     Spacer(Modifier.height(12.dp))
 
-                    /* Driver License only for Employees */
-                    if (role == UserRole.Employee) {
-                        Text("Do you have a valid Driver's License?", color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.clickable { hasDriverLicense = true }
-                            ) {
-                                RadioButton(
-                                    selected = hasDriverLicense == true,
-                                    onClick = { hasDriverLicense = true },
-                                    colors = RadioButtonDefaults.colors(selectedColor = onSurfaceColor, unselectedColor = mutedColor)
-                                )
-                                Text("Yes", color = onSurfaceColor, fontSize = 16.sp)
-                            }
+                    LabeledField(
+                        label = "Company",
+                        value = company,
+                        onValueChange = { company = it },
+                        placeholder = "Company name (optional)",
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.clickable { hasDriverLicense = false }
-                            ) {
-                                RadioButton(
-                                    selected = hasDriverLicense == false,
-                                    onClick = { hasDriverLicense = false },
-                                    colors = RadioButtonDefaults.colors(selectedColor = onSurfaceColor, unselectedColor = mutedColor)
-                                )
-                                Text("No", color = onSurfaceColor, fontSize = 16.sp)
-                            }
-                        }
-                    }
+                    Spacer(Modifier.height(12.dp))
+
+                    LabeledToggle(
+                        label = "Driver's license",
+                        state = hasDriverLicense,
+                        onStateChange = { hasDriverLicense = it }
+                    )
 
                     Spacer(Modifier.height(12.dp))
 
@@ -283,13 +249,10 @@ fun RegisterScreen(
                         label = "Password",
                         value = password,
                         onValueChange = { password = it },
-                        show = showPwd,
-                        onToggle = { showPwd = !showPwd },
-                        error = pwdErr
+                        error = pwdErr,
+                        showPassword = showPwd,
+                        onToggleVisibility = { showPwd = !showPwd }
                     )
-
-                    Spacer(Modifier.height(6.dp))
-                    PasswordStrengthIndicator(password)
 
                     Spacer(Modifier.height(12.dp))
 
@@ -297,121 +260,187 @@ fun RegisterScreen(
                         label = "Confirm Password",
                         value = confirm,
                         onValueChange = { confirm = it },
-                        show = showConfirm,
-                        onToggle = { showConfirm = !showConfirm },
-                        error = confirmErr
+                        error = confirmErr,
+                        showPassword = showConfirm,
+                        onToggleVisibility = { showConfirm = !showConfirm }
                     )
 
                     Spacer(Modifier.height(12.dp))
 
-                    /* Terms */
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Checkbox(
-                            checked = acceptTerms,
-                            onCheckedChange = { acceptTerms = it },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = onSurfaceColor,
-                                uncheckedColor = mutedColor
-                            )
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        val termsText = buildAnnotatedString {
-                            append("I accept the ")
-                            pushStyle(
-                                SpanStyle(
-                                    color = onSurfaceColor,
-                                    fontWeight = FontWeight.SemiBold,
-                                    textDecoration = TextDecoration.Underline
-                                )
-                            )
-                            append("Terms & Privacy")
-                            pop()
-                        }
-                        Text(termsText, color = mutedColor)
-                    }
-                    if (termsErr != null) {
-                        Text(
-                            termsErr!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            modifier = Modifier.align(Alignment.Start)
-                        )
-                    }
+                    TermsCheckbox(
+                        checked = acceptTerms,
+                        onCheckedChange = {
+                            acceptTerms = it
+                            termsErr = null
+                        },
+                        error = termsErr,
+                        onTermsClicked = { /* could open terms */ }
+                    )
 
                     Spacer(Modifier.height(18.dp))
 
                     Button(
                         onClick = {
-                            if (role == null) {
-                                Toast.makeText(ctx, "Please select a role before registering", Toast.LENGTH_SHORT)
-                                    .show()
-                            } else if (validate()) {
-                                Toast.makeText(ctx, "Registered (demo)", Toast.LENGTH_SHORT).show()
-                                onRegistered()
+                            if (validate() && !isLoading) {
+                                generalError = null
+                                isLoading = true
+                                scope.launch {
+                                    val result = DataRepository.register(
+                                        firstName = first.trim(),
+                                        lastName = last.trim(),
+                                        email = email.trim(),
+                                        password = password,
+                                        role = when (role) {
+                                            UserRole.Employee -> "Employee"
+                                            UserRole.Guest, null -> "Employee"
+                                        },
+                                        phone = phone.trim().ifBlank { null },
+                                        company = company.trim().ifBlank { null },
+                                        hasDriverLicense = hasDriverLicense == true,
+                                        employeeId = idNumber.trim().ifBlank { null }
+                                    )
+                                    isLoading = false
+                                    result.onSuccess {
+                                        Toast.makeText(ctx, "Account created", Toast.LENGTH_SHORT).show()
+                                        onRegistered()
+                                    }.onFailure { error ->
+                                        generalError = error.message ?: "Failed to register"
+                                    }
+                                }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = onSurfaceColor),
                         shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth().height(52.dp)
-                    ) { Text("Register", fontWeight = FontWeight.SemiBold) }
+                        enabled = !isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                    ) {
+                        Icon(Icons.Outlined.PersonAdd, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (isLoading) "Creating..." else "Create Account", fontWeight = FontWeight.SemiBold)
+                    }
 
                     Spacer(Modifier.height(16.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Already have an account? ", color = mutedColor)
-                        Text(
-                            "Login",
-                            color = onSurfaceColor,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { onGoToLogin() }
-                        )
+
+                    val loginText = buildAnnotatedString {
+                        append("Already have an account? ")
+                        pushStyle(SpanStyle(color = primaryContainerColor, fontWeight = FontWeight.Bold))
+                        append("Login")
+                        pop()
                     }
+
+                    Text(
+                        text = loginText,
+                        color = mutedColor,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onGoToLogin)
+                    )
                 }
             }
-
-            Spacer(Modifier.height(24.dp))
         }
     }
 }
 
-/* ---------- Reusable Components ---------- */
 @Composable
 private fun LabeledField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    modifier: Modifier = Modifier,
     error: String? = null,
-    keyboard: KeyboardOptions = KeyboardOptions.Default
+    keyboard: KeyboardOptions = KeyboardOptions.Default,
+    modifier: Modifier = Modifier
 ) {
-    val onSurfaceColor = AppColors.OnDark
-    val mutedColor = AppColors.Muted
-    val primaryContainerColor = AppColors.PrimaryContainer
-    Text(label, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
-    Spacer(Modifier.height(6.dp))
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        placeholder = { Text(placeholder) },
-        keyboardOptions = keyboard,
-        isError = error != null,
-        supportingText = { error?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = primaryContainerColor,
-            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
-            errorBorderColor = MaterialTheme.colorScheme.error,
-            cursorColor = onSurfaceColor,
-            focusedTextColor = onSurfaceColor,
-            unfocusedTextColor = onSurfaceColor,
-            errorTextColor = onSurfaceColor,
-            focusedPlaceholderColor = mutedColor,
-            unfocusedPlaceholderColor = mutedColor
-        ),
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .fillMaxWidth()
-    )
+    Column(modifier = modifier) {
+        Text(label, color = AppColors.OnDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Spacer(Modifier.height(6.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            placeholder = { Text(placeholder, color = AppColors.Muted) },
+            isError = error != null,
+            keyboardOptions = keyboard,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AppColors.PrimaryContainer,
+                unfocusedBorderColor = AppColors.PrimaryContainer.copy(alpha = 0.6f),
+                cursorColor = AppColors.OnDark,
+                focusedTextColor = AppColors.OnDark,
+                unfocusedTextColor = AppColors.OnDark,
+                errorBorderColor = Color(0xFFFF4C4C)
+            ),
+            supportingText = {
+                error?.let { Text(it, color = Color(0xFFFF4C4C)) }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DropdownField(
+    label: String,
+    options: List<UserRole>,
+    selected: UserRole?,
+    onSelected: (UserRole) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(label, color = AppColors.OnDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Spacer(Modifier.height(6.dp))
+        var expanded by remember { mutableStateOf(false) }
+        OutlinedTextField(
+            readOnly = true,
+            value = selected?.name ?: "Select role",
+            onValueChange = {},
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .menuAnchor(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AppColors.PrimaryContainer,
+                unfocusedBorderColor = AppColors.PrimaryContainer.copy(alpha = 0.6f),
+                focusedTextColor = AppColors.OnDark,
+                unfocusedTextColor = AppColors.OnDark
+            ),
+            label = { Text("Role", color = AppColors.Muted) },
+            supportingText = {}
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.name, color = AppColors.OnDark) },
+                    onClick = {
+                        onSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LabeledToggle(
+    label: String,
+    state: Boolean?,
+    onStateChange: (Boolean?) -> Unit
+) {
+    Column {
+        Text(label, color = AppColors.OnDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = state == true, onClick = { onStateChange(true) }, label = { Text("Yes") })
+            FilterChip(selected = state == false, onClick = { onStateChange(false) }, label = { Text("No") })
+        }
+    }
 }
 
 @Composable
@@ -419,132 +448,91 @@ private fun PasswordField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-    show: Boolean,
-    onToggle: () -> Unit,
-    error: String? = null
+    error: String?,
+    showPassword: Boolean,
+    onToggleVisibility: () -> Unit
 ) {
-    val onSurfaceColor = AppColors.OnDark
-    val mutedColor = AppColors.Muted
-    val primaryContainerColor = AppColors.PrimaryContainer
-    Text(label, color = onSurfaceColor, fontWeight = FontWeight.SemiBold)
-    Spacer(Modifier.height(6.dp))
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        placeholder = { Text(if (label.startsWith("Confirm")) "Confirm password" else "Create password") },
-        isError = error != null,
-        visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            IconButton(onClick = onToggle) {
-                Icon(
-                    imageVector = if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                    contentDescription = "Toggle password",
-                    tint = onSurfaceColor
-                )
-            }
-        },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
-        supportingText = { error?.let { Text(it, color = MaterialTheme.colorScheme.error) } },
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = primaryContainerColor,
-            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
-            errorBorderColor = MaterialTheme.colorScheme.error,
-            cursorColor = onSurfaceColor,
-            focusedTextColor = onSurfaceColor,
-            unfocusedTextColor = onSurfaceColor
-        ),
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .fillMaxWidth()
-    )
-}
-
-@Composable
-private fun RoleRadio(
-    role: UserRole?,
-    onRoleChange: (UserRole) -> Unit
-) {
-    val onSurfaceColor = AppColors.OnDark
-    val mutedColor = AppColors.Muted
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+    Column {
+        Text(label, color = AppColors.OnDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Spacer(Modifier.height(6.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            placeholder = { Text("Enter $label".lowercase()) },
+            isError = error != null,
+            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = onToggleVisibility) {
+                    Icon(
+                        imageVector = if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                        contentDescription = "Toggle password",
+                        tint = AppColors.OnDark
+                    )
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AppColors.PrimaryContainer,
+                unfocusedBorderColor = AppColors.PrimaryContainer.copy(alpha = 0.6f),
+                cursorColor = AppColors.OnDark,
+                focusedTextColor = AppColors.OnDark,
+                unfocusedTextColor = AppColors.OnDark,
+                errorBorderColor = Color(0xFFFF4C4C)
+            ),
+            supportingText = {
+                error?.let { Text(it, color = Color(0xFFFF4C4C)) }
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onRoleChange(UserRole.Guest) }
-        ) {
-            RadioButton(
-                selected = role == UserRole.Guest,
-                onClick = { onRoleChange(UserRole.Guest) },
-                colors = RadioButtonDefaults.colors(selectedColor = onSurfaceColor, unselectedColor = mutedColor)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("Guest", color = onSurfaceColor, fontSize = 16.sp)
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onRoleChange(UserRole.Employee) }
-        ) {
-            RadioButton(
-                selected = role == UserRole.Employee,
-                onClick = { onRoleChange(UserRole.Employee) },
-                colors = RadioButtonDefaults.colors(selectedColor = onSurfaceColor, unselectedColor = mutedColor)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("Employee", color = onSurfaceColor, fontSize = 16.sp)
-        }
+                .clip(RoundedCornerShape(14.dp))
+        )
     }
 }
 
-/* ---------- Helpers ---------- */
-private fun String.capitalizeWords(): String =
-    split(" ").joinToString(" ") { it.lowercase().replaceFirstChar { c -> c.titlecase() } }
-
 @Composable
-private fun PasswordStrengthIndicator(password: String) {
-    val mutedColor = AppColors.Muted
-    val strength = remember(password) { estimateStrength(password) }
-    val (label, color) = when (strength) {
-        PwdStrength.Weak -> "Weak" to Color(0xFFFF7A7A)
-        PwdStrength.Medium -> "Medium" to Color(0xFFFFD166)
-        PwdStrength.Strong -> "Strong" to Color(0xFF7AD97A)
+private fun TermsCheckbox(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    error: String?,
+    onTermsClicked: () -> Unit
+) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "I accept the terms and privacy policy",
+                color = AppColors.OnDark,
+                modifier = Modifier.clickable(onClick = onTermsClicked),
+                textDecoration = TextDecoration.Underline
+            )
+        }
+        error?.let { Text(it, color = Color(0xFFFF4C4C)) }
     }
-    LinearProgressIndicator(
-        progress = { ((strength.ordinal + 1) / 3f) },
-        color = color,
-        trackColor = color.copy(alpha = 0.2f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(6.dp)
-            .clip(RoundedCornerShape(8.dp))
-    )
-    Spacer(Modifier.height(4.dp))
-    Text("Password strength: $label", color = mutedColor, fontSize = 12.sp)
 }
 
-private fun estimateStrength(pwd: String): PwdStrength {
+private fun String.capitalizeWords(): String = split(" ").joinToString(" ") { word ->
+    word.lowercase(Locale.getDefault()).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+}
+
+private fun passwordError(password: String): String? = when (passwordStrength(password)) {
+    PwdStrength.Weak -> "Password too weak"
+    else -> null
+}
+
+private fun passwordStrength(password: String): PwdStrength {
     var score = 0
-    if (pwd.length >= 8) score++
-    if (pwd.any { it.isDigit() } && pwd.any { !it.isLetterOrDigit() }) score++
-    if (pwd.any(Char::isLowerCase) && pwd.any(Char::isUpperCase)) score++
-    return when {
-        score >= 3 -> PwdStrength.Strong
-        score == 2 -> PwdStrength.Medium
-        else -> PwdStrength.Weak
+    if (password.length >= 8) score++
+    if (password.any(Char::isDigit)) score++
+    if (password.any { it.isUpperCase() } && password.any { it.isLowerCase() }) score++
+    return when (score) {
+        0, 1 -> PwdStrength.Weak
+        2 -> PwdStrength.Medium
+        else -> PwdStrength.Strong
     }
 }
 
-private fun passwordError(pwd: String): String? =
-    if (pwd.length < 6) "Min 6 characters" else null
-
-@Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
+@Preview(showBackground = true)
 @Composable
 private fun PreviewRegister() {
     MaterialTheme {

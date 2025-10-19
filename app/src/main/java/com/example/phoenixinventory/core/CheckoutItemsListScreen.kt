@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,8 +40,7 @@ fun CheckoutItemsListScreen(
     var searchQuery by remember { mutableStateOf("") }
     var filterCondition by remember { mutableStateOf("All") }
 
-    // Get all items that are available for checkout (status = "Available")
-    val allItems = remember { DataRepository.getAllItems() }
+    val allItems by DataRepository.itemsFlow().collectAsState()
     val availableItems = remember(allItems) {
         allItems.filter { it.status == "Available" }
     }
