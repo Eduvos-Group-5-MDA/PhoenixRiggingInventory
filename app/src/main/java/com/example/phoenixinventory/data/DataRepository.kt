@@ -1,10 +1,19 @@
 package com.example.phoenixinventory.data
 
+import kotlinx.coroutines.runBlocking
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
+/**
+ * DataRepository now uses Firebase as the backend.
+ * All operations are synchronous wrappers around Firebase calls.
+ * For better performance, consider using suspend functions directly from FirebaseRepository.
+ */
 object DataRepository {
 
+    private val firebaseRepo = FirebaseRepository()
+
+    // Fallback in-memory storage (used only if Firebase is unavailable)
     private val items = mutableListOf<InventoryItem>()
     private val users = mutableListOf<User>()
     private val checkoutRecords = mutableListOf<CheckoutRecord>()
@@ -108,104 +117,163 @@ object DataRepository {
         )
     }
 
-    // Item operations
-    fun getAllItems(): List<InventoryItem> = items.toList()
+    // Firebase Repository Access
+    fun getFirebaseRepository(): FirebaseRepository = firebaseRepo
 
-    fun getItemById(id: String): InventoryItem? = items.find { it.id == id }
-
-    fun addItem(item: InventoryItem) {
-        items.add(item)
-    }
-
-    fun updateItem(item: InventoryItem) {
-        val index = items.indexOfFirst { it.id == item.id }
-        if (index != -1) {
-            items[index] = item.copy(updatedAt = Date())
+    // Item operations (Firebase-backed)
+    fun getAllItems(): List<InventoryItem> = runBlocking {
+        firebaseRepo.getAllItems().getOrElse {
+            items.toList() // Fallback to in-memory
         }
     }
 
-    fun removeItem(id: String) {
-        items.removeIf { it.id == id }
-        // Also remove related checkout records
-        checkoutRecords.removeIf { it.itemId == id }
-    }
-
-    // User operations
-    fun getAllUsers(): List<User> = users.toList()
-
-    fun getUserById(id: String): User? = users.find { it.id == id }
-
-    fun getCurrentUser(): User = users.first() // For demo, returns first user
-
-    fun updateUser(user: User) {
-        val index = users.indexOfFirst { it.id == user.id }
-        if (index != -1) {
-            users[index] = user
+    fun getItemById(id: String): InventoryItem? = runBlocking {
+        firebaseRepo.getItemById(id).getOrElse {
+            items.find { it.id == id } // Fallback to in-memory
         }
     }
 
-    // Checkout operations
-    fun checkOutItem(itemId: String, userId: String, notes: String = "") {
-        val item = getItemById(itemId)
-        if (item != null && item.status == "Available") {
-            updateItem(item.copy(status = "Checked Out"))
-            checkoutRecords.add(
-                CheckoutRecord(
-                    itemId = itemId,
-                    userId = userId,
-                    checkedOutAt = Date(),
-                    notes = notes
-                )
-            )
+    fun addItem(item: InventoryItem) = runBlocking {
+        val result = firebaseRepo.addItem(item)
+        if (result.isFailure) {
+            items.add(item) // Fallback to in-memory
         }
     }
 
-    fun checkInItem(itemId: String) {
-        val item = getItemById(itemId)
-        val activeCheckout = checkoutRecords.find { it.itemId == itemId && it.checkedInAt == null }
-
-        if (item != null && activeCheckout != null) {
-            updateItem(item.copy(status = "Available"))
-            val index = checkoutRecords.indexOf(activeCheckout)
+    fun updateItem(item: InventoryItem) = runBlocking {
+        val result = firebaseRepo.updateItem(item)
+        if (result.isFailure) {
+            val index = items.indexOfFirst { it.id == item.id }
             if (index != -1) {
-                checkoutRecords[index] = activeCheckout.copy(checkedInAt = Date())
+                items[index] = item.copy(updatedAt = Date())
             }
         }
     }
 
-    fun getCheckedOutItems(): List<CheckedOutItemDetail> {
-        return checkoutRecords
-            .filter { it.checkedInAt == null }
-            .mapNotNull { record ->
-                val item = getItemById(record.itemId)
-                val user = getUserById(record.userId)
-                if (item != null && user != null) {
-                    val daysOut = TimeUnit.MILLISECONDS.toDays(
-                        Date().time - record.checkedOutAt.time
-                    ).toInt()
-                    CheckedOutItemDetail(item, user, record, daysOut)
-                } else null
+    fun removeItem(id: String) = runBlocking {
+        val result = firebaseRepo.deleteItem(id)
+        if (result.isFailure) {
+            items.removeIf { it.id == id }
+            checkoutRecords.removeIf { it.itemId == id }
+        }
+    }
+
+    // User operations (Firebase-backed)
+    fun getAllUsers(): List<User> = runBlocking {
+        firebaseRepo.getAllUsers().getOrElse {
+            users.toList() // Fallback to in-memory
+        }
+    }
+
+    fun getUserById(id: String): User? = runBlocking {
+        firebaseRepo.getUserById(id).getOrElse {
+            users.find { it.id == id } // Fallback to in-memory
+        }
+    }
+
+    fun getCurrentUser(): User = runBlocking {
+        firebaseRepo.getCurrentUser().getOrElse {
+            null // Return null on error, fallback to in-memory below
+        } ?: users.firstOrNull() ?: User(name = "Guest", email = "guest@example.com", role = "Employee")
+    }
+
+    fun updateUser(user: User) = runBlocking {
+        val result = firebaseRepo.updateUser(user)
+        if (result.isFailure) {
+            val index = users.indexOfFirst { it.id == user.id }
+            if (index != -1) {
+                users[index] = user
             }
+        }
     }
 
-    fun getItemsOutLongerThan(days: Int): List<CheckedOutItemDetail> {
-        return getCheckedOutItems().filter { it.daysOut >= days }
+    // Checkout operations (Firebase-backed)
+    fun checkOutItem(itemId: String, userId: String, notes: String = "") = runBlocking {
+        val result = firebaseRepo.checkOutItem(itemId, userId, notes)
+        if (result.isFailure) {
+            val item = getItemById(itemId)
+            if (item != null && item.status == "Available") {
+                updateItem(item.copy(status = "Checked Out"))
+                checkoutRecords.add(
+                    CheckoutRecord(
+                        itemId = itemId,
+                        userId = userId,
+                        checkedOutAt = Date(),
+                        notes = notes
+                    )
+                )
+            }
+        }
     }
 
-    // Stats operations
-    fun getTotalValue(): Double = items.sumOf { it.value }
+    fun checkInItem(itemId: String) = runBlocking {
+        val result = firebaseRepo.checkInItem(itemId)
+        if (result.isFailure) {
+            val item = getItemById(itemId)
+            val activeCheckout = checkoutRecords.find { it.itemId == itemId && it.checkedInAt == null }
 
-    fun getStolenLostDamagedValue(): Double {
-        return items
-            .filter { it.status in listOf("Stolen", "Lost", "Damaged") }
-            .sumOf { it.value }
+            if (item != null && activeCheckout != null) {
+                updateItem(item.copy(status = "Available"))
+                val index = checkoutRecords.indexOf(activeCheckout)
+                if (index != -1) {
+                    checkoutRecords[index] = activeCheckout.copy(checkedInAt = Date())
+                }
+            }
+        }
     }
 
-    fun getStolenLostDamagedCount(): Int {
-        return items.count { it.status in listOf("Stolen", "Lost", "Damaged") }
+    fun getCheckedOutItems(): List<CheckedOutItemDetail> = runBlocking {
+        firebaseRepo.getCheckedOutItems().getOrElse {
+            checkoutRecords
+                .filter { it.checkedInAt == null }
+                .mapNotNull { record ->
+                    val item = getItemById(record.itemId)
+                    val user = getUserById(record.userId)
+                    if (item != null && user != null && record.checkedOutAt != null) {
+                        val daysOut = TimeUnit.MILLISECONDS.toDays(
+                            Date().time - record.checkedOutAt!!.time
+                        ).toInt()
+                        CheckedOutItemDetail(item, user, record, daysOut)
+                    } else null
+                }
+        }
     }
 
-    fun getCheckedOutCount(): Int {
-        return items.count { it.status == "Checked Out" }
+    fun getItemsOutLongerThan(days: Int): List<CheckedOutItemDetail> = runBlocking {
+        firebaseRepo.getItemsOutLongerThan(days).getOrElse {
+            getCheckedOutItems().filter { it.daysOut >= days }
+        }
+    }
+
+    // Stats operations (Firebase-backed)
+    fun getTotalValue(): Double = runBlocking {
+        firebaseRepo.getTotalValue().getOrElse {
+            items.sumOf { it.value }
+        }
+    }
+
+    fun getStolenLostDamagedValue(): Double = runBlocking {
+        firebaseRepo.getStolenLostDamagedValue().getOrElse {
+            items
+                .filter { it.status in listOf("Stolen", "Lost", "Damaged") }
+                .sumOf { it.value }
+        }
+    }
+
+    fun getStolenLostDamagedCount(): Int = runBlocking {
+        firebaseRepo.getStolenLostDamagedCount().getOrElse {
+            items.count { it.status in listOf("Stolen", "Lost", "Damaged") }
+        }
+    }
+
+    fun getCheckedOutCount(): Int = runBlocking {
+        firebaseRepo.getCheckedOutCount().getOrElse {
+            items.count { it.status == "Checked Out" }
+        }
+    }
+
+    // Initialize sample data in Firebase
+    fun initializeSampleData() = runBlocking {
+        firebaseRepo.initializeSampleData()
     }
 }
