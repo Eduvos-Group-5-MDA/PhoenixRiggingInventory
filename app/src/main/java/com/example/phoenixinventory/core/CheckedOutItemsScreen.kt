@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.CheckedOutItemDetail
 import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +39,22 @@ fun CheckedOutItemsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var filterDaysOut by remember { mutableStateOf("All") }
 
-    val allCheckedOutItems = remember { DataRepository.getCheckedOutItems() }
+    var allCheckedOutItems by remember { mutableStateOf<List<CheckedOutItemDetail>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
+    // Refresh key to reload data
+    var refreshKey by remember { mutableStateOf(0) }
+
+    LaunchedEffect(refreshKey) {
+        scope.launch {
+            isLoading = true
+            val items = firebaseRepo.getCheckedOutItems().getOrNull() ?: emptyList()
+            allCheckedOutItems = items
+            isLoading = false
+        }
+    }
 
     // Filter items based on search and filter criteria
     val filteredItems = allCheckedOutItems.filter { detail ->
@@ -142,7 +159,14 @@ fun CheckedOutItemsScreen(
             Spacer(Modifier.height(12.dp))
 
             /* ---------- Items List ---------- */
-            if (filteredItems.isEmpty()) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryContainerColor)
+                }
+            } else if (filteredItems.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center

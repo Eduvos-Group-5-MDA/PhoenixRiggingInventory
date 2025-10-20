@@ -21,6 +21,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.InventoryItem
+import com.example.phoenixinventory.data.User
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 /* ---------- Palette ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -39,14 +44,46 @@ fun ItemCheckoutScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val item = remember { DataRepository.getItemById(itemId) }
-    val users = remember { DataRepository.getAllUsers() }
-    val currentUser = remember { DataRepository.getCurrentUser() }
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
 
-    var selectedUserId by remember { mutableStateOf(currentUser.id) }
+    var item by remember { mutableStateOf<InventoryItem?>(null) }
+    var users by remember { mutableStateOf<List<User>>(emptyList()) }
+    var currentUserId by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(true) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    var selectedUserId by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
-    if (item == null) {
+    // Load data from Firebase
+    LaunchedEffect(Unit) {
+        scope.launch {
+            isLoading = true
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            currentUserId = userId ?: ""
+            selectedUserId = currentUserId
+
+            item = firebaseRepo.getItemById(itemId).getOrNull()
+            users = firebaseRepo.getAllUsers().getOrNull() ?: emptyList()
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = PrimaryContainer)
+        }
+        return
+    }
+
+    val currentItem = item
+    if (currentItem == null) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -59,7 +96,7 @@ fun ItemCheckoutScreen(
     }
 
     // Check if item is already checked out
-    val isAlreadyCheckedOut = item.status == "Checked Out"
+    val isAlreadyCheckedOut = currentItem.status == "Checked Out"
 
     Box(
         modifier = Modifier
@@ -149,12 +186,12 @@ fun ItemCheckoutScreen(
                     }
                     Spacer(Modifier.height(12.dp))
 
-                    DetailRow("Name", item.name)
-                    DetailRow("Serial/ID", item.serialId)
-                    DetailRow("Condition", item.condition)
-                    DetailRow("Status", item.status)
+                    DetailRow("Name", currentItem.name)
+                    DetailRow("Serial/ID", currentItem.serialId)
+                    DetailRow("Condition", currentItem.condition)
+                    DetailRow("Status", currentItem.status)
 
-                    if (item.permissionNeeded) {
+                    if (currentItem.permissionNeeded) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Shield, contentDescription = null, tint = Color(0xFFF5A524), modifier = Modifier.size(20.dp))
@@ -162,7 +199,7 @@ fun ItemCheckoutScreen(
                             Text("Permission needed", color = Color(0xFFF5A524), fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
                     }
-                    if (item.driversLicenseNeeded) {
+                    if (currentItem.driversLicenseNeeded) {
                         Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Badge, contentDescription = null, tint = Color(0xFFF5A524), modifier = Modifier.size(20.dp))
@@ -252,12 +289,25 @@ fun ItemCheckoutScreen(
                     if (isAlreadyCheckedOut) {
                         Toast.makeText(ctx, "Item is already checked out", Toast.LENGTH_SHORT).show()
                     } else {
-                        DataRepository.checkOutItem(itemId, selectedUserId, notes)
-                        Toast.makeText(ctx, "${item.name} checked out successfully", Toast.LENGTH_SHORT).show()
-                        onBack()
+                        isProcessing = true
+                        scope.launch {
+                            try {
+                                val result = firebaseRepo.checkOutItem(itemId, selectedUserId, notes)
+                                if (result.isSuccess) {
+                                    Toast.makeText(ctx, "${currentItem.name} checked out successfully", Toast.LENGTH_SHORT).show()
+                                    onBack()
+                                } else {
+                                    Toast.makeText(ctx, "Failed to check out item", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(ctx, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            } finally {
+                                isProcessing = false
+                            }
+                        }
                     }
                 },
-                enabled = !isAlreadyCheckedOut,
+                enabled = !isAlreadyCheckedOut && !isProcessing,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = CheckoutBlue,
                     contentColor = Color.White,
@@ -267,9 +317,17 @@ fun ItemCheckoutScreen(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Icon(Icons.Outlined.Assignment, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Confirm Check Out", fontWeight = FontWeight.SemiBold)
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Outlined.Assignment, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Confirm Check Out", fontWeight = FontWeight.SemiBold)
+                }
             }
 
             Spacer(Modifier.height(12.dp))

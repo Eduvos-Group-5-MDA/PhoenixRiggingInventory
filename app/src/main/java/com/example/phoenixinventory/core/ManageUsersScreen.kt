@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
 import com.example.phoenixinventory.data.User
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.CheckedOutItemDetail
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,8 +38,21 @@ fun ManageUsersScreen(
     val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
 
-    val users = remember { DataRepository.getAllUsers() }
+    var users by remember { mutableStateOf<List<User>>(emptyList()) }
     var selectedUser by remember { mutableStateOf<User?>(null) }
+    var userCheckouts by remember { mutableStateOf<List<CheckedOutItemDetail>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            isLoading = true
+            users = firebaseRepo.getAllUsers().getOrNull() ?: emptyList()
+            userCheckouts = firebaseRepo.getCheckedOutItems().getOrNull() ?: emptyList()
+            isLoading = false
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -119,17 +135,16 @@ fun ManageUsersScreen(
                         DetailRow("Role", selectedUser!!.role)
 
                         // Get items checked out by this user
-                        val userCheckouts = DataRepository.getCheckedOutItems()
-                            .filter { it.user.id == selectedUser!!.id }
+                        val selectedUserCheckouts = userCheckouts.filter { it.user.id == selectedUser!!.id }
 
                         Spacer(Modifier.height(8.dp))
-                        DetailRow("Items Checked Out", "${userCheckouts.size}")
+                        DetailRow("Items Checked Out", "${selectedUserCheckouts.size}")
 
-                        if (userCheckouts.isNotEmpty()) {
+                        if (selectedUserCheckouts.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
                             Text("Checked Out Items:", color = mutedColor, fontSize = 13.sp)
                             Spacer(Modifier.height(4.dp))
-                            userCheckouts.forEach { checkout ->
+                            selectedUserCheckouts.forEach { checkout ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()

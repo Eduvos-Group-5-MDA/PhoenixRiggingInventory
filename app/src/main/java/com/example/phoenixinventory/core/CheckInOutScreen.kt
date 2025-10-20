@@ -21,6 +21,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.InventoryItem
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 /* ---------- Palette ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -38,22 +42,69 @@ fun CheckInOutScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val item = remember { DataRepository.getItemById(itemId) }
-    val users = remember { DataRepository.getAllUsers() }
-    val currentUser = remember { DataRepository.getCurrentUser() }
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
+    // State for Firebase data
+    var item by remember { mutableStateOf<InventoryItem?>(null) }
+    var users by remember { mutableStateOf(emptyList<com.example.phoenixinventory.data.User>()) }
+    var currentUserId by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(true) }
+    var isProcessing by remember { mutableStateOf(false) }
 
     val isCheckOut = item?.status == "Available"
-    var selectedUserId by remember { mutableStateOf(currentUser.id) }
+    var selectedUserId by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
-    if (item == null) {
+    // Load data from Firebase
+    LaunchedEffect(Unit) {
+        scope.launch {
+            isLoading = true
+            // Get current user ID
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            currentUserId = userId ?: ""
+            selectedUserId = currentUserId
+
+            // Load item and users
+            item = firebaseRepo.getItemById(itemId).getOrNull()
+            users = firebaseRepo.getAllUsers().getOrNull() ?: emptyList()
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
             contentAlignment = Alignment.Center
         ) {
-            Text("Item not found", color = OnDark)
+            CircularProgressIndicator(color = PrimaryContainer)
+        }
+        return
+    }
+
+    // Create a local non-null variable for smart casting
+    val currentItem = item
+    if (currentItem == null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = OnDark, modifier = Modifier.size(64.dp))
+                Spacer(Modifier.height(16.dp))
+                Text("Item not found", color = OnDark, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(24.dp))
+                OutlinedButton(
+                    onClick = onBack,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = OnDark)
+                ) {
+                    Text("Go Back")
+                }
+            }
         }
         return
     }
@@ -106,7 +157,7 @@ fun CheckInOutScreen(
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(item.name, color = Muted, fontSize = 13.sp)
+                    Text(currentItem.name, color = Muted, fontSize = 13.sp)
                 }
             }
 
@@ -128,12 +179,12 @@ fun CheckInOutScreen(
                     }
                     Spacer(Modifier.height(12.dp))
 
-                    DetailRow("Name", item.name)
-                    DetailRow("Serial/ID", item.serialId)
-                    DetailRow("Condition", item.condition)
-                    DetailRow("Status", item.status)
+                    DetailRow("Name", currentItem.name)
+                    DetailRow("Serial/ID", currentItem.serialId)
+                    DetailRow("Condition", currentItem.condition)
+                    DetailRow("Status", currentItem.status)
 
-                    if (item.permissionNeeded) {
+                    if (currentItem.permissionNeeded) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Shield, contentDescription = null, tint = Color(0xFFF5A524), modifier = Modifier.size(20.dp))
@@ -141,7 +192,7 @@ fun CheckInOutScreen(
                             Text("Permission needed", color = Color(0xFFF5A524), fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
                     }
-                    if (item.driversLicenseNeeded) {
+                    if (currentItem.driversLicenseNeeded) {
                         Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Badge, contentDescription = null, tint = Color(0xFFF5A524), modifier = Modifier.size(20.dp))
@@ -230,15 +281,34 @@ fun CheckInOutScreen(
             /* ---------- Action Button ---------- */
             Button(
                 onClick = {
-                    if (isCheckOut) {
-                        DataRepository.checkOutItem(itemId, selectedUserId, notes)
-                        Toast.makeText(ctx, "${item.name} checked out", Toast.LENGTH_SHORT).show()
-                    } else {
-                        DataRepository.checkInItem(itemId)
-                        Toast.makeText(ctx, "${item.name} checked in", Toast.LENGTH_SHORT).show()
+                    isProcessing = true
+                    scope.launch {
+                        try {
+                            if (isCheckOut) {
+                                val result = firebaseRepo.checkOutItem(itemId, selectedUserId, notes)
+                                if (result.isSuccess) {
+                                    Toast.makeText(ctx, "${currentItem.name} checked out successfully", Toast.LENGTH_SHORT).show()
+                                    onBack()
+                                } else {
+                                    Toast.makeText(ctx, "Failed to check out item: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                                }
+                            } else {
+                                val result = firebaseRepo.checkInItem(itemId)
+                                if (result.isSuccess) {
+                                    Toast.makeText(ctx, "${currentItem.name} checked in successfully", Toast.LENGTH_SHORT).show()
+                                    onBack()
+                                } else {
+                                    Toast.makeText(ctx, "Failed to check in item: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(ctx, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            isProcessing = false
+                        }
                     }
-                    onBack()
                 },
+                enabled = !isProcessing && !isLoading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isCheckOut) Color(0xFF0A6CFF) else Color(0xFF17C964),
                     contentColor = Color.White
@@ -246,15 +316,23 @@ fun CheckInOutScreen(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Icon(
-                    if (isCheckOut) Icons.Outlined.Assignment else Icons.Outlined.CheckCircle,
-                    contentDescription = null
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (isCheckOut) "Confirm Check Out" else "Confirm Check In",
-                    fontWeight = FontWeight.SemiBold
-                )
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        if (isCheckOut) Icons.Outlined.Assignment else Icons.Outlined.CheckCircle,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isCheckOut) "Confirm Check Out" else "Confirm Check In",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Spacer(Modifier.height(12.dp))

@@ -45,7 +45,11 @@ data class User(
     val id: String = UUID.randomUUID().toString(),
     val name: String = "",
     val email: String = "",
-    val role: String = "", // Admin, Manager, Employee
+    val role: String = "", // Admin, Manager, Employee, Guest
+    val phone: String = "",
+    val idNumber: String? = null,
+    val company: String? = null,
+    val hasDriverLicense: Boolean? = null,
     @ServerTimestamp
     val createdAt: Date? = null
 ) {
@@ -55,6 +59,10 @@ data class User(
         name = "",
         email = "",
         role = "",
+        phone = "",
+        idNumber = null,
+        company = null,
+        hasDriverLicense = null,
         createdAt = null
     )
 }

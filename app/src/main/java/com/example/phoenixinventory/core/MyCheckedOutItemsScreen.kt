@@ -20,7 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
 import com.example.phoenixinventory.data.InventoryItem
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.CheckedOutItemDetail
 import com.example.phoenixinventory.ui.theme.AppColors
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,15 +42,31 @@ fun MyCheckedOutItemsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var filterStatus by remember { mutableStateOf("All") }
 
-    // Get current user and their checked out items
-    val currentUser = remember { DataRepository.getCurrentUser() }
-    val allCheckedOutItems = remember { DataRepository.getCheckedOutItems() }
+    // Firebase state
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(true) }
+    var myCheckedOutItems by remember { mutableStateOf<List<InventoryItem>>(emptyList()) }
+    var currentUserId by remember { mutableStateOf("") }
 
-    // Filter to only show items checked out by current user
-    val myCheckedOutItems = remember(allCheckedOutItems) {
-        allCheckedOutItems
-            .filter { it.user.id == currentUser.id }
-            .map { it.item }
+    // Load data from Firebase
+    LaunchedEffect(Unit) {
+        scope.launch {
+            isLoading = true
+            // Get current user ID
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            currentUserId = userId ?: ""
+
+            // Get all checked out items
+            val allCheckedOutItems = firebaseRepo.getCheckedOutItems().getOrNull() ?: emptyList()
+
+            // Filter to only show items checked out by current user
+            myCheckedOutItems = allCheckedOutItems
+                .filter { it.user.id == currentUserId }
+                .map { it.item }
+
+            isLoading = false
+        }
     }
 
     val filteredItems = myCheckedOutItems.filter { item ->
@@ -143,7 +163,14 @@ fun MyCheckedOutItemsScreen(
             Spacer(Modifier.height(12.dp))
 
             /* ---------- Items List ---------- */
-            if (filteredItems.isEmpty()) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryContainerColor)
+                }
+            } else if (filteredItems.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center

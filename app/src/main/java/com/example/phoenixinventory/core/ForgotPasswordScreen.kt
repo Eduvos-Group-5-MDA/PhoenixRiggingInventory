@@ -30,6 +30,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.ui.theme.AppColors
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ForgotPasswordScreen(
@@ -43,28 +46,42 @@ fun ForgotPasswordScreen(
     val primaryColor = AppColors.Primary
     val primaryContainerColor = AppColors.PrimaryContainer
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val auth = remember { FirebaseAuth.getInstance() }
+
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     var email by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var showNewPassword by remember { mutableStateOf(false) }
-    var showConfirmPassword by remember { mutableStateOf(false) }
-
     var emailError by remember { mutableStateOf<String?>(null) }
-    var newPasswordError by remember { mutableStateOf<String?>(null) }
-    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
 
     fun validate(): Boolean {
         emailError = if (email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches())
             "Enter a valid email" else null
-        newPasswordError = if (newPassword.length < 4) "Password must be 4+ characters" else null
-        confirmPasswordError = when {
-            confirmPassword.isBlank() -> "Please confirm your password"
-            confirmPassword != newPassword -> "Passwords do not match"
-            else -> null
+        return emailError == null
+    }
+
+    fun sendPasswordResetEmail() {
+        if (!validate()) return
+
+        isLoading = true
+        scope.launch {
+            try {
+                auth.sendPasswordResetEmail(email.trim()).await()
+                isLoading = false
+                showSuccessDialog = true
+            } catch (e: Exception) {
+                isLoading = false
+                emailError = when {
+                    e.message?.contains("no user record", ignoreCase = true) == true ->
+                        "No account found with this email"
+                    e.message?.contains("network", ignoreCase = true) == true ->
+                        "Network error. Please check your connection"
+                    else -> "Failed to send reset email. Please try again"
+                }
+                Toast.makeText(context, emailError, Toast.LENGTH_LONG).show()
+            }
         }
-        return emailError == null && newPasswordError == null && confirmPasswordError == null
     }
 
     Box(
@@ -131,7 +148,7 @@ fun ForgotPasswordScreen(
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "Enter your email and create a new password",
+                        text = "Enter your email and we'll send you a link to reset your password",
                         color = mutedColor,
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
@@ -144,107 +161,16 @@ fun ForgotPasswordScreen(
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = { email = it; emailError = null },
                         singleLine = true,
                         placeholder = { Text("Enter your email") },
                         isError = emailError != null,
+                        enabled = !isLoading,
                         supportingText = {
                             emailError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                         },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = primaryContainerColor,
-                            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
-                            errorBorderColor = Color(0xFFFF4C4C),
-                            cursorColor = onSurfaceColor,
-                            focusedTextColor = onSurfaceColor,
-                            unfocusedTextColor = onSurfaceColor,
-                            errorTextColor = onSurfaceColor,
-                            focusedPlaceholderColor = mutedColor,
-                            unfocusedPlaceholderColor = mutedColor,
-                            errorPlaceholderColor = mutedColor,
-                            errorSupportingTextColor = Color(0xFFFF4C4C)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                    )
-
-                    Spacer(Modifier.height(14.dp))
-
-                    /* ---------- New Password Field ---------- */
-                    Text("New Password", color = onSurfaceColor, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = newPassword,
-                        onValueChange = { newPassword = it },
-                        singleLine = true,
-                        placeholder = { Text("Enter new password") },
-                        isError = newPasswordError != null,
-                        visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showNewPassword = !showNewPassword }) {
-                                Icon(
-                                    imageVector = if (showNewPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = "Toggle password",
-                                    tint = onSurfaceColor
-                                )
-                            }
-                        },
-                        supportingText = {
-                            newPasswordError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Next
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = primaryContainerColor,
-                            unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
-                            errorBorderColor = Color(0xFFFF4C4C),
-                            cursorColor = onSurfaceColor,
-                            focusedTextColor = onSurfaceColor,
-                            unfocusedTextColor = onSurfaceColor,
-                            errorTextColor = onSurfaceColor,
-                            focusedPlaceholderColor = mutedColor,
-                            unfocusedPlaceholderColor = mutedColor,
-                            errorPlaceholderColor = mutedColor,
-                            errorSupportingTextColor = Color(0xFFFF4C4C)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                    )
-
-                    Spacer(Modifier.height(14.dp))
-
-                    /* ---------- Confirm Password Field ---------- */
-                    Text("Confirm Password", color = onSurfaceColor, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        singleLine = true,
-                        placeholder = { Text("Confirm new password") },
-                        isError = confirmPasswordError != null,
-                        visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
-                                Icon(
-                                    imageVector = if (showConfirmPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                    contentDescription = "Toggle password",
-                                    tint = onSurfaceColor
-                                )
-                            }
-                        },
-                        supportingText = {
-                            confirmPasswordError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -258,7 +184,9 @@ fun ForgotPasswordScreen(
                             focusedPlaceholderColor = mutedColor,
                             unfocusedPlaceholderColor = mutedColor,
                             errorPlaceholderColor = mutedColor,
-                            errorSupportingTextColor = Color(0xFFFF4C4C)
+                            errorSupportingTextColor = Color(0xFFFF4C4C),
+                            disabledTextColor = onSurfaceColor.copy(alpha = 0.6f),
+                            disabledBorderColor = primaryContainerColor.copy(alpha = 0.4f)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -267,23 +195,30 @@ fun ForgotPasswordScreen(
 
                     Spacer(Modifier.height(18.dp))
 
-                    /* ---------- Reset Password Button ---------- */
+                    /* ---------- Send Reset Email Button ---------- */
                     Button(
-                        onClick = {
-                            if (validate()) {
-                                showSuccessDialog = true
-                            }
-                        },
+                        onClick = { sendPasswordResetEmail() },
+                        enabled = !isLoading && email.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = primaryColor,
-                            contentColor = onSurfaceColor
+                            contentColor = onSurfaceColor,
+                            disabledContainerColor = primaryColor.copy(alpha = 0.6f),
+                            disabledContentColor = onSurfaceColor.copy(alpha = 0.6f)
                         ),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
                     ) {
-                        Text("Reset Password", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = onSurfaceColor,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Send Reset Email", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        }
                     }
 
                     Spacer(Modifier.height(14.dp))
@@ -306,21 +241,21 @@ fun ForgotPasswordScreen(
                 onDismissRequest = { },
                 title = {
                     Text(
-                        "Password Changed!",
+                        "Email Sent!",
                         color = onSurfaceColor,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 text = {
                     Text(
-                        "Your password has been successfully changed. You can now log in with your new password.",
+                        "A password reset link has been sent to $email. Please check your email inbox and follow the instructions to reset your password.",
                         color = mutedColor
                     )
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         showSuccessDialog = false
-                        Toast.makeText(context, "Password changed successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Password reset email sent successfully", Toast.LENGTH_SHORT).show()
                         onBack()
                     }) {
                         Text("Continue to Login", color = onSurfaceColor, fontWeight = FontWeight.Bold)

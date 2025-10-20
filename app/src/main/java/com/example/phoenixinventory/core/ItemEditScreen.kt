@@ -23,7 +23,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.InventoryItem
+import kotlinx.coroutines.launch
 
 /* ---------- Palette ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -41,21 +43,58 @@ fun ItemEditScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val item = remember { DataRepository.getItemById(itemId) }
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
+    var item by remember { mutableStateOf<InventoryItem?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isProcessing by remember { mutableStateOf(false) }
 
     // Edit state
-    var editName by remember { mutableStateOf(item?.name ?: "") }
-    var editSerial by remember { mutableStateOf(item?.serialId ?: "") }
-    var editDesc by remember { mutableStateOf(item?.description ?: "") }
-    var editCondition by remember { mutableStateOf(item?.condition ?: "Good") }
-    var editStatus by remember { mutableStateOf(item?.status ?: "Available") }
-    var editValue by remember { mutableStateOf(item?.value?.toString() ?: "0") }
-    var editPermanent by remember { mutableStateOf(item?.permanentCheckout ?: false) }
-    var editPermission by remember { mutableStateOf(item?.permissionNeeded ?: false) }
-    var editLicense by remember { mutableStateOf(item?.driversLicenseNeeded ?: false) }
+    var editName by remember { mutableStateOf("") }
+    var editSerial by remember { mutableStateOf("") }
+    var editDesc by remember { mutableStateOf("") }
+    var editCondition by remember { mutableStateOf("Good") }
+    var editStatus by remember { mutableStateOf("Available") }
+    var editValue by remember { mutableStateOf("0") }
+    var editPermanent by remember { mutableStateOf(false) }
+    var editPermission by remember { mutableStateOf(false) }
+    var editLicense by remember { mutableStateOf(false) }
 
     val conditions = listOf("Excellent", "Good", "Fair", "Poor")
     val statuses = listOf("Available", "Checked Out", "Under Maintenance", "Retired", "Damaged", "Lost", "Stolen")
+
+    LaunchedEffect(itemId) {
+        scope.launch {
+            isLoading = true
+            val result = firebaseRepo.getItemById(itemId).getOrNull()
+            item = result
+            result?.let {
+                editName = it.name
+                editSerial = it.serialId
+                editDesc = it.description
+                editCondition = it.condition
+                editStatus = it.status
+                editValue = it.value.toString()
+                editPermanent = it.permanentCheckout
+                editPermission = it.permissionNeeded
+                editLicense = it.driversLicenseNeeded
+            }
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = PrimaryContainer)
+        }
+        return
+    }
 
     if (item == null) {
         Box(
@@ -144,28 +183,50 @@ fun ItemEditScreen(
             /* ---------- Action Buttons ---------- */
             Button(
                 onClick = {
-                    val updatedItem = item.copy(
-                        name = editName.trim(),
-                        serialId = editSerial.trim(),
-                        description = editDesc.trim(),
-                        condition = editCondition,
-                        status = editStatus,
-                        value = editValue.toDoubleOrNull() ?: 0.0,
-                        permanentCheckout = editPermanent,
-                        permissionNeeded = editPermission,
-                        driversLicenseNeeded = editLicense
-                    )
-                    DataRepository.updateItem(updatedItem)
-                    Toast.makeText(ctx, "Item updated", Toast.LENGTH_SHORT).show()
-                    onBack()
+                    scope.launch {
+                        try {
+                            isProcessing = true
+                            val updatedItem = item!!.copy(
+                                name = editName.trim(),
+                                serialId = editSerial.trim(),
+                                description = editDesc.trim(),
+                                condition = editCondition,
+                                status = editStatus,
+                                value = editValue.toDoubleOrNull() ?: 0.0,
+                                permanentCheckout = editPermanent,
+                                permissionNeeded = editPermission,
+                                driversLicenseNeeded = editLicense
+                            )
+                            val result = firebaseRepo.updateItem(updatedItem)
+                            if (result.isSuccess) {
+                                Toast.makeText(ctx, "Item updated", Toast.LENGTH_SHORT).show()
+                                onBack()
+                            } else {
+                                Toast.makeText(ctx, "Failed to update item: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(ctx, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            isProcessing = false
+                        }
+                    }
                 },
+                enabled = !isProcessing,
                 colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = OnDark),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Icon(Icons.Outlined.CheckCircle, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Save Changes", fontWeight = FontWeight.SemiBold)
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        color = OnDark,
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Outlined.CheckCircle, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Save Changes", fontWeight = FontWeight.SemiBold)
+                }
             }
 
             Spacer(Modifier.height(12.dp))

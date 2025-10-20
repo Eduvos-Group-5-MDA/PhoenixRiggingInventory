@@ -26,19 +26,22 @@ object DataRepository {
                     id = "user1",
                     name = "John Doe",
                     email = "stadlerkieran@gmail.com",
-                    role = "Employee"
+                    role = "Employee",
+                    phone = "071 234 5678"
                 ),
                 User(
                     id = "user2",
                     name = "Jane Smith",
                     email = "jane.smith@example.com",
-                    role = "Manager"
+                    role = "Manager",
+                    phone = "082 345 6789"
                 ),
                 User(
                     id = "user3",
                     name = "Mike Johnson",
                     email = "mike.j@example.com",
-                    role = "Employee"
+                    role = "Employee",
+                    phone = "083 456 7890"
                 )
             )
         )
@@ -174,7 +177,7 @@ object DataRepository {
     fun getCurrentUser(): User = runBlocking {
         firebaseRepo.getCurrentUser().getOrElse {
             null // Return null on error, fallback to in-memory below
-        } ?: users.firstOrNull() ?: User(name = "Guest", email = "guest@example.com", role = "Employee")
+        } ?: users.firstOrNull() ?: User(name = "Guest", email = "guest@example.com", role = "Employee", phone = "000 000 0000")
     }
 
     fun updateUser(user: User) = runBlocking {

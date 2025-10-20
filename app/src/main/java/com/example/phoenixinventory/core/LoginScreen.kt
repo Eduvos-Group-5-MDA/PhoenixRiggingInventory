@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.KeyboardType
 import com.example.phoenixinventory.ui.theme.AppColors
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun LoginScreen(
@@ -53,6 +56,11 @@ fun LoginScreen(
     var showPassword by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf<String?>(null) }
     var pwdError by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    val auth = FirebaseAuth.getInstance()
+    val scope = rememberCoroutineScope()
+    val firebaseRepo = remember { com.example.phoenixinventory.data.FirebaseRepository() }
 
     fun validate(): Boolean {
         emailError =
@@ -233,14 +241,41 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(18.dp))
 
-                    // Login button (demo flow → navigate on success)
+                    // Login button with Firebase Authentication
                     Button(
                         onClick = {
                             if (validate()) {
-                                Toast.makeText(context, "Logged in (demo)", Toast.LENGTH_SHORT).show()
-                                onLoginSuccess() // ← navigate to Dashboard route in AppNav
+                                isLoading = true
+                                scope.launch {
+                                    try {
+                                        auth.signInWithEmailAndPassword(email.trim(), password).await()
+
+                                        // After successful login, fetch user document
+                                        val userId = auth.currentUser?.uid
+                                        if (userId != null) {
+                                            val userResult = firebaseRepo.getUserById(userId)
+                                            if (userResult.isSuccess) {
+                                                Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
+                                                onLoginSuccess()
+                                            } else {
+                                                Toast.makeText(context, "User profile not found", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        val errorMessage = when {
+                                            e.message?.contains("password", ignoreCase = true) == true -> "Invalid password"
+                                            e.message?.contains("user", ignoreCase = true) == true -> "User not found"
+                                            e.message?.contains("network", ignoreCase = true) == true -> "Network error"
+                                            else -> "Login failed: ${e.message}"
+                                        }
+                                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
                             }
                         },
+                        enabled = !isLoading,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = primaryColor,
                             contentColor = onSurfaceColor
@@ -250,7 +285,11 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(52.dp)
                     ) {
-                        Text("Login", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        Text(
+                            if (isLoading) "Logging in..." else "Login",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
                     }
 
                     Spacer(Modifier.height(14.dp))

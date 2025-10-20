@@ -22,7 +22,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.User
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +33,12 @@ fun UserEditScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val user = remember { DataRepository.getUserById(userId) }
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
+    var user by remember { mutableStateOf<User?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isProcessing by remember { mutableStateOf(false) }
 
     val backgroundColor = MaterialTheme.colorScheme.background
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -41,11 +48,37 @@ fun UserEditScreen(
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
 
     // Edit state
-    var editName by remember { mutableStateOf(user?.name ?: "") }
-    var editEmail by remember { mutableStateOf(user?.email ?: "") }
-    var editRole by remember { mutableStateOf(user?.role ?: "Employee") }
+    var editName by remember { mutableStateOf("") }
+    var editEmail by remember { mutableStateOf("") }
+    var editRole by remember { mutableStateOf("Employee") }
 
-    val roles = listOf("Admin", "Manager", "Employee")
+    val roles = listOf("Admin", "Manager", "Employee", "Guest")
+
+    LaunchedEffect(userId) {
+        scope.launch {
+            isLoading = true
+            val result = firebaseRepo.getUserById(userId).getOrNull()
+            user = result
+            result?.let {
+                editName = it.name
+                editEmail = it.email
+                editRole = it.role
+            }
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundColor),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = primaryContainerColor)
+        }
+        return
+    }
 
     if (user == null) {
         Box(
@@ -128,15 +161,29 @@ fun UserEditScreen(
                         Toast.makeText(ctx, "Please fill in all required fields", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    val updatedUser = user.copy(
-                        name = editName.trim(),
-                        email = editEmail.trim(),
-                        role = editRole
-                    )
-                    DataRepository.updateUser(updatedUser)
-                    Toast.makeText(ctx, "User updated", Toast.LENGTH_SHORT).show()
-                    onBack()
+                    scope.launch {
+                        try {
+                            isProcessing = true
+                            val updatedUser = user!!.copy(
+                                name = editName.trim(),
+                                email = editEmail.trim(),
+                                role = editRole
+                            )
+                            val result = firebaseRepo.updateUser(updatedUser)
+                            if (result.isSuccess) {
+                                Toast.makeText(ctx, "User updated", Toast.LENGTH_SHORT).show()
+                                onBack()
+                            } else {
+                                Toast.makeText(ctx, "Failed to update user: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(ctx, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        } finally {
+                            isProcessing = false
+                        }
+                    }
                 },
+                enabled = !isProcessing,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = primaryContainerColor,
                     contentColor = onSurfaceColor
@@ -144,9 +191,17 @@ fun UserEditScreen(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Icon(Icons.Outlined.CheckCircle, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Save Changes", fontWeight = FontWeight.SemiBold)
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        color = onSurfaceColor,
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Outlined.CheckCircle, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Save Changes", fontWeight = FontWeight.SemiBold)
+                }
             }
 
             Spacer(Modifier.height(12.dp))

@@ -20,7 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.InventoryItem
+import kotlinx.coroutines.launch
 
 /* ---------- Palette ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -38,8 +40,33 @@ fun ItemDeleteScreen(
     onBack: () -> Unit = {}
 ) {
     val ctx = LocalContext.current
-    val item = remember { DataRepository.getItemById(itemId) }
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
+    var item by remember { mutableStateOf<InventoryItem?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isProcessing by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(itemId) {
+        scope.launch {
+            isLoading = true
+            item = firebaseRepo.getItemById(itemId).getOrNull()
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(Carbon, Charcoal, Carbon))),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = PrimaryContainer)
+        }
+        return
+    }
 
     if (item == null) {
         Box(
@@ -133,15 +160,15 @@ fun ItemDeleteScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    DetailRow("Name", item.name)
-                    DetailRow("Serial/ID", item.serialId)
-                    DetailRow("Description", item.description)
-                    DetailRow("Condition", item.condition)
-                    DetailRow("Status", item.status)
-                    DetailRow("Value", "$${item.value}")
-                    if (item.permanentCheckout) DetailRow("Permanent Checkout", "Yes")
-                    if (item.permissionNeeded) DetailRow("Permission Needed", "Yes")
-                    if (item.driversLicenseNeeded) DetailRow("Driver's License", "Required")
+                    DetailRow("Name", item?.name ?: "")
+                    DetailRow("Serial/ID", item?.serialId ?: "")
+                    DetailRow("Description", item?.description ?: "")
+                    DetailRow("Condition", item?.condition ?: "")
+                    DetailRow("Status", item?.status ?: "")
+                    DetailRow("Value", "$${item?.value ?: 0.0}")
+                    if (item?.permanentCheckout == true) DetailRow("Permanent Checkout", "Yes")
+                    if (item?.permissionNeeded == true) DetailRow("Permission Needed", "Yes")
+                    if (item?.driversLicenseNeeded == true) DetailRow("Driver's License", "Required")
                 }
             }
 
@@ -150,6 +177,7 @@ fun ItemDeleteScreen(
             /* ---------- Action Buttons ---------- */
             Button(
                 onClick = { showConfirmDialog = true },
+                enabled = !isProcessing,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = DangerRed,
                     contentColor = Color.White
@@ -157,9 +185,17 @@ fun ItemDeleteScreen(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Icon(Icons.Outlined.Delete, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Delete Item", fontWeight = FontWeight.SemiBold)
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Outlined.Delete, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Delete Item", fontWeight = FontWeight.SemiBold)
+                }
             }
 
             Spacer(Modifier.height(12.dp))
@@ -179,25 +215,50 @@ fun ItemDeleteScreen(
         /* ---------- Confirmation Dialog ---------- */
         if (showConfirmDialog) {
             AlertDialog(
-                onDismissRequest = { showConfirmDialog = false },
+                onDismissRequest = {
+                    if (!isProcessing) {
+                        showConfirmDialog = false
+                    }
+                },
                 title = { Text("Confirm Deletion", color = OnDark, fontWeight = FontWeight.Bold) },
                 text = {
                     Text(
-                        "Are you absolutely sure you want to delete \"${item.name}\"? This action cannot be undone.",
+                        "Are you absolutely sure you want to delete \"${item?.name}\"? This action cannot be undone.",
                         color = Muted
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        DataRepository.removeItem(itemId)
-                        Toast.makeText(ctx, "Item deleted successfully", Toast.LENGTH_SHORT).show()
-                        onBack()
-                    }) {
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    isProcessing = true
+                                    val result = firebaseRepo.deleteItem(itemId)
+                                    if (result.isSuccess) {
+                                        Toast.makeText(ctx, "Item deleted successfully", Toast.LENGTH_SHORT).show()
+                                        onBack()
+                                    } else {
+                                        Toast.makeText(ctx, "Failed to delete item: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                                        isProcessing = false
+                                        showConfirmDialog = false
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(ctx, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                    isProcessing = false
+                                    showConfirmDialog = false
+                                }
+                            }
+                        },
+                        enabled = !isProcessing
+                    ) {
                         Text("Delete", color = DangerRed, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showConfirmDialog = false }) {
+                    TextButton(
+                        onClick = { showConfirmDialog = false },
+                        enabled = !isProcessing
+                    ) {
                         Text("Cancel", color = OnDark)
                     }
                 },

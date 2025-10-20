@@ -19,8 +19,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
 import com.example.phoenixinventory.data.InventoryItem
 import com.example.phoenixinventory.ui.theme.AppColors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,13 +37,22 @@ fun CheckedInItemsScreen(
     val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
 
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
     var searchQuery by remember { mutableStateOf("") }
     var filterStatus by remember { mutableStateOf("All") }
+    var checkedInItems by remember { mutableStateOf<List<InventoryItem>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
     // Get all items and filter for those NOT checked out (Available, Under Maintenance, etc.)
-    val allItems = remember { DataRepository.getAllItems() }
-    val checkedInItems = remember(allItems) {
-        allItems.filter { it.status != "Checked Out" }
+    LaunchedEffect(Unit) {
+        scope.launch {
+            isLoading = true
+            val allItems = firebaseRepo.getAllItems().getOrNull() ?: emptyList()
+            checkedInItems = allItems.filter { it.status != "Checked Out" }
+            isLoading = false
+        }
     }
 
     val filteredItems = checkedInItems.filter { item ->
@@ -138,7 +149,14 @@ fun CheckedInItemsScreen(
             Spacer(Modifier.height(12.dp))
 
             /* ---------- Items List ---------- */
-            if (filteredItems.isEmpty()) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryContainerColor)
+                }
+            } else if (filteredItems.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center

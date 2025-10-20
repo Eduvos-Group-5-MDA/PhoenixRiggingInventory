@@ -20,8 +20,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
 import com.example.phoenixinventory.data.InventoryItem
 import com.example.phoenixinventory.ui.theme.AppColors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,9 +38,22 @@ fun ViewAllItemsScreen(
     val mutedColor = AppColors.Muted
     val primaryColor = AppColors.Primary
     val primaryContainerColor = AppColors.PrimaryContainer
+
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
     var searchQuery by remember { mutableStateOf("") }
     var filterStatus by remember { mutableStateOf("All") }
-    val items = remember { DataRepository.getAllItems() }
+    var items by remember { mutableStateOf<List<InventoryItem>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            isLoading = true
+            items = firebaseRepo.getAllItems().getOrNull() ?: emptyList()
+            isLoading = false
+        }
+    }
 
     val filteredItems = items.filter { item ->
         val matchesSearch = item.name.contains(searchQuery, ignoreCase = true) ||
@@ -134,12 +149,21 @@ fun ViewAllItemsScreen(
             Spacer(Modifier.height(12.dp))
 
             /* ---------- Items List ---------- */
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(filteredItems) { item ->
-                    ItemCard(item = item, onClick = { onItemClick(item.id) })
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryContainerColor)
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredItems) { item ->
+                        ItemCard(item = item, onClick = { onItemClick(item.id) })
+                    }
                 }
             }
         }

@@ -18,8 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.InventoryItem
 import com.example.phoenixinventory.ui.theme.AppColors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,7 +36,31 @@ fun ItemDetailScreen(
     val mutedColor = AppColors.Muted
     val primaryColor = AppColors.Primary
     val primaryContainerColor = AppColors.PrimaryContainer
-    val item = remember { DataRepository.getItemById(itemId) }
+
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+    var item by remember { mutableStateOf<InventoryItem?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(itemId) {
+        scope.launch {
+            isLoading = true
+            item = firebaseRepo.getItemById(itemId).getOrNull()
+            isLoading = false
+        }
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(backgroundColor, surfaceColor, backgroundColor))),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = primaryContainerColor)
+        }
+        return
+    }
 
     if (item == null) {
         Box(
@@ -100,15 +126,15 @@ fun ItemDetailScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    DetailRow("Name", item.name)
-                    DetailRow("Serial/ID", item.serialId)
-                    DetailRow("Description", item.description)
-                    DetailRow("Condition", item.condition)
-                    DetailRow("Status", item.status)
-                    DetailRow("Value", "$${item.value}")
-                    if (item.permanentCheckout) DetailRow("Permanent Checkout", "Yes")
-                    if (item.permissionNeeded) DetailRow("Permission Needed", "Yes")
-                    if (item.driversLicenseNeeded) DetailRow("Driver's License", "Required")
+                    DetailRow("Name", item?.name ?: "")
+                    DetailRow("Serial/ID", item?.serialId ?: "")
+                    DetailRow("Description", item?.description ?: "")
+                    DetailRow("Condition", item?.condition ?: "")
+                    DetailRow("Status", item?.status ?: "")
+                    DetailRow("Value", "$${item?.value ?: 0.0}")
+                    if (item?.permanentCheckout == true) DetailRow("Permanent Checkout", "Yes")
+                    if (item?.permissionNeeded == true) DetailRow("Permission Needed", "Yes")
+                    if (item?.driversLicenseNeeded == true) DetailRow("Driver's License", "Required")
                 }
             }
 

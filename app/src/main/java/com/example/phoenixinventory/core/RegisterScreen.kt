@@ -35,6 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
 import com.example.phoenixinventory.ui.theme.AppColors
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
+import com.example.phoenixinventory.data.FirebaseRepository
+import com.example.phoenixinventory.data.User
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 /* ---------- Models ---------- */
 enum class UserRole { Guest, Employee }
@@ -45,7 +51,8 @@ private enum class PwdStrength { Weak, Medium, Strong }
 fun RegisterScreen(
     onBack: () -> Unit,
     onRegistered: () -> Unit,
-    onGoToLogin: () -> Unit
+    onGoToLogin: () -> Unit,
+    onTermsPrivacy: () -> Unit = {}
 ) {
     val backgroundColor = AppColors.Carbon
     val surfaceColor = AppColors.Charcoal
@@ -79,6 +86,12 @@ fun RegisterScreen(
     var pwdErr by remember { mutableStateOf<String?>(null) }
     var confirmErr by remember { mutableStateOf<String?>(null) }
     var termsErr by remember { mutableStateOf<String?>(null) }
+
+    // Firebase state
+    var isLoading by remember { mutableStateOf(false) }
+    val auth = FirebaseAuth.getInstance()
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
 
     fun validate(): Boolean {
         firstErr = if (first.isBlank()) "Required" else null
@@ -315,19 +328,17 @@ fun RegisterScreen(
                             )
                         )
                         Spacer(Modifier.width(8.dp))
-                        val termsText = buildAnnotatedString {
-                            append("I accept the ")
-                            pushStyle(
-                                SpanStyle(
-                                    color = onSurfaceColor,
-                                    fontWeight = FontWeight.SemiBold,
-                                    textDecoration = TextDecoration.Underline
-                                )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("I accept the ", color = mutedColor, fontSize = 14.sp)
+                            Text(
+                                "Terms & Privacy",
+                                color = onSurfaceColor,
+                                fontWeight = FontWeight.SemiBold,
+                                textDecoration = TextDecoration.Underline,
+                                fontSize = 14.sp,
+                                modifier = Modifier.clickable { onTermsPrivacy() }
                             )
-                            append("Terms & Privacy")
-                            pop()
                         }
-                        Text(termsText, color = mutedColor)
                     }
                     if (termsErr != null) {
                         Text(
@@ -346,14 +357,62 @@ fun RegisterScreen(
                                 Toast.makeText(ctx, "Please select a role before registering", Toast.LENGTH_SHORT)
                                     .show()
                             } else if (validate()) {
-                                Toast.makeText(ctx, "Registered (demo)", Toast.LENGTH_SHORT).show()
-                                onRegistered()
+                                isLoading = true
+                                scope.launch {
+                                    try {
+                                        // Create Firebase Auth account
+                                        val authResult = auth.createUserWithEmailAndPassword(email.trim(), password).await()
+                                        val userId = authResult.user?.uid ?: throw Exception("Failed to create user")
+
+                                        // Update display name
+                                        val profileUpdates = UserProfileChangeRequest.Builder()
+                                            .setDisplayName("$first $last")
+                                            .build()
+                                        authResult.user?.updateProfile(profileUpdates)?.await()
+
+                                        // Create user document in Firestore
+                                        val newUser = User(
+                                            id = userId,
+                                            name = "$first $last",
+                                            email = email.trim(),
+                                            role = when (role!!) {
+                                                UserRole.Employee -> "Employee"
+                                                UserRole.Guest -> "Guest"
+                                            },
+                                            phone = phone,
+                                            idNumber = idNumber.ifBlank { null },
+                                            company = if (role == UserRole.Guest) company.ifBlank { null } else null,
+                                            hasDriverLicense = if (role == UserRole.Employee) hasDriverLicense else null
+                                        )
+
+                                        firebaseRepo.addUser(newUser).getOrThrow()
+
+                                        Toast.makeText(ctx, "Registration successful!", Toast.LENGTH_SHORT).show()
+                                        onRegistered()
+                                    } catch (e: Exception) {
+                                        val errorMessage = when {
+                                            e.message?.contains("email", ignoreCase = true) == true -> "Email already in use"
+                                            e.message?.contains("password", ignoreCase = true) == true -> "Weak password"
+                                            e.message?.contains("network", ignoreCase = true) == true -> "Network error"
+                                            else -> "Registration failed: ${e.message}"
+                                        }
+                                        Toast.makeText(ctx, errorMessage, Toast.LENGTH_LONG).show()
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
                             }
                         },
+                        enabled = !isLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = onSurfaceColor),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth().height(52.dp)
-                    ) { Text("Register", fontWeight = FontWeight.SemiBold) }
+                    ) {
+                        Text(
+                            if (isLoading) "Creating Account..." else "Register",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
 
                     Spacer(Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {

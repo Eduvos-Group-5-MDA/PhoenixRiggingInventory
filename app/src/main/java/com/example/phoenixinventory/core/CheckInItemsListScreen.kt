@@ -20,7 +20,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.data.CheckedOutItemDetail
 import com.example.phoenixinventory.data.DataRepository
+import com.example.phoenixinventory.data.FirebaseRepository
 import com.example.phoenixinventory.ui.theme.AppColors
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,16 +39,25 @@ fun CheckInItemsListScreen(
     val primaryContainerColor = MaterialTheme.colorScheme.tertiary
     val checkInGreen = Color(0xFF17C964)
 
+    val firebaseRepo = remember { FirebaseRepository() }
+    val scope = rememberCoroutineScope()
+
     var searchQuery by remember { mutableStateOf("") }
     var filterDaysOut by remember { mutableStateOf("All") }
+    var isLoading by remember { mutableStateOf(true) }
+    var myCheckedOutItems by remember { mutableStateOf<List<CheckedOutItemDetail>>(emptyList()) }
 
-    // Get current user and their checked out items
-    val currentUser = remember { DataRepository.getCurrentUser() }
-    val allCheckedOutItems = remember { DataRepository.getCheckedOutItems() }
-
-    // Filter to only show items checked out by current user
-    val myCheckedOutItems = remember(allCheckedOutItems) {
-        allCheckedOutItems.filter { it.user.id == currentUser.id }
+    // Get current user's checked out items from Firebase
+    LaunchedEffect(Unit) {
+        scope.launch {
+            isLoading = true
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            if (userId != null) {
+                val allCheckedOut = firebaseRepo.getCheckedOutItems().getOrNull() ?: emptyList()
+                myCheckedOutItems = allCheckedOut.filter { it.user.id == userId }
+            }
+            isLoading = false
+        }
     }
 
     val filteredItems = myCheckedOutItems.filter { detail ->
@@ -149,7 +161,14 @@ fun CheckInItemsListScreen(
             Spacer(Modifier.height(12.dp))
 
             /* ---------- Items List ---------- */
-            if (filteredItems.isEmpty()) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryContainerColor)
+                }
+            } else if (filteredItems.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center

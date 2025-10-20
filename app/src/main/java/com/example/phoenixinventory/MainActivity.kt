@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.example.phoenixinventory.core.AppNavHost
 import com.example.phoenixinventory.ui.theme.PhoenixInventoryTheme
 import com.google.firebase.FirebaseApp
+import com.example.phoenixinventory.data.AuthState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,6 +18,9 @@ class MainActivity : ComponentActivity() {
 
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
+
+        // Initialize auth state
+        AuthState.init()
 
         setContent {
             PhoenixInventoryTheme {

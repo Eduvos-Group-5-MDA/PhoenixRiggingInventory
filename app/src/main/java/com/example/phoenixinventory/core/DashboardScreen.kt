@@ -29,6 +29,11 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.phoenixinventory.ui.theme.ThemeState
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 /* ---------- Palette (same as other screens) ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -65,6 +70,7 @@ fun DashboardScreen(
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
 
     val backgroundColor = MaterialTheme.colorScheme.background
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -174,25 +180,28 @@ fun DashboardScreen(
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
+            // Admin/Manager-only stats
+            if (role.equals("Admin", ignoreCase = true) || role.equals("Manager", ignoreCase = true)) {
+                Spacer(Modifier.height(12.dp))
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                StatCard(
-                    value = "$${"%.0f".format(totalValue)}",
-                    label = "Total Value",
-                    icon = Icons.Outlined.AttachMoney,
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
-                    value = itemsOutOver30Days.toString(),
-                    label = "30+ Days Out",
-                    icon = Icons.Outlined.Warning,
-                    iconTint = if (itemsOutOver30Days > 0) Color(0xFFEF4444) else OnDark,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    StatCard(
+                        value = "$${"%.0f".format(totalValue)}",
+                        label = "Total Value",
+                        icon = Icons.Outlined.AttachMoney,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        value = itemsOutOver30Days.toString(),
+                        label = "30+ Days Out",
+                        icon = Icons.Outlined.Warning,
+                        iconTint = if (itemsOutOver30Days > 0) Color(0xFFEF4444) else OnDark,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             Spacer(Modifier.height(12.dp))
@@ -268,33 +277,41 @@ fun DashboardScreen(
                 onClick = onMyCheckedOutItems
             )
 
-            ActionRow(
-                title = "Checked Out Items",
-                subtitle = "View all items currently checked out,",
-                icon = Icons.Outlined.ArrowCircleUp,
-                iconBg = Color(0xFFFF6F00),
-                onClick = onCheckedOut
-            )
+            // Admin/Manager-only: View all checked out items
+            if (role.equals("Admin", ignoreCase = true) || role.equals("Manager", ignoreCase = true)) {
+                ActionRow(
+                    title = "Checked Out Items",
+                    subtitle = "View all items currently checked out,",
+                    icon = Icons.Outlined.ArrowCircleUp,
+                    iconBg = Color(0xFFFF6F00),
+                    onClick = onCheckedOut
+                )
+            }
 
-            ActionRow(
-                title = "Checked In Items",
-                subtitle = "View all items currently not checked out,",
-                icon = Icons.Outlined.ArrowCircleDown,
-                iconBg = Color(0xFFFF6F00),
-                onClick = onCheckedIn
-            )
+            // Admin/Manager-only: View all checked in items
+            if (role.equals("Admin", ignoreCase = true) || role.equals("Manager", ignoreCase = true)) {
+                ActionRow(
+                    title = "Checked In Items",
+                    subtitle = "View all items currently not checked out,",
+                    icon = Icons.Outlined.ArrowCircleDown,
+                    iconBg = Color(0xFFFF6F00),
+                    onClick = onCheckedIn
+                )
+            }
 
-            // 🔗 Navigate to Manage screen
-            ActionRow(
-                title = "Manage Item",
-                subtitle = "Add, edit or delete item,",
-                icon = Icons.Outlined.Build,
-                iconBg = Color(0xFFFF6F00),
-                onClick = {
-                    navController.navigate(Dest.MANAGE_ITEMS)
-                    onManageItem()
-                }
-            )
+            // Admin/Manager-only: Manage Items
+            if (role.equals("Admin", ignoreCase = true) || role.equals("Manager", ignoreCase = true)) {
+                ActionRow(
+                    title = "Manage Item",
+                    subtitle = "Add, edit or delete item,",
+                    icon = Icons.Outlined.Build,
+                    iconBg = Color(0xFFFF6F00),
+                    onClick = {
+                        navController.navigate(Dest.MANAGE_ITEMS)
+                        onManageItem()
+                    }
+                )
+            }
 
             ActionRow(
                 title = "Check Out Item",
@@ -312,13 +329,16 @@ fun DashboardScreen(
                 onClick = onCheckIn
             )
 
-            ActionRow(
-                title = "Manage Users",
-                subtitle = "View and manage users",
-                icon = Icons.Outlined.Group,
-                iconBg = Color(0xFFFF6F00),
-                onClick = onManageUsers
-            )
+            // Admin/Manager-only actions
+            if (role.equals("Admin", ignoreCase = true) || role.equals("Manager", ignoreCase = true)) {
+                ActionRow(
+                    title = "Manage Users",
+                    subtitle = "View and manage users",
+                    icon = Icons.Outlined.Group,
+                    iconBg = Color(0xFFFF6F00),
+                    onClick = onManageUsers
+                )
+            }
 
             Spacer(Modifier.height(24.dp))
         }
@@ -349,7 +369,19 @@ fun DashboardScreen(
         /* ---------- Settings Dialog ---------- */
         if (showSettingsDialog) {
             SettingsDialog(
-                onDismiss = { showSettingsDialog = false }
+                onDismiss = { showSettingsDialog = false },
+                onReportClick = {
+                    showSettingsDialog = false
+                    showReportDialog = true
+                }
+            )
+        }
+
+        /* ---------- Report Dialog ---------- */
+        if (showReportDialog) {
+            ReportDialog(
+                userEmail = email,
+                onDismiss = { showReportDialog = false }
             )
         }
     }
@@ -449,7 +481,8 @@ private fun ActionRow(
 /* ---------- Settings Dialog ---------- */
 @Composable
 private fun SettingsDialog(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onReportClick: () -> Unit
 ) {
     val isDarkMode = ThemeState.isDarkMode
 
@@ -517,7 +550,7 @@ private fun SettingsDialog(
 
                 // Report button
                 Surface(
-                    onClick = { /* TODO: Handle report action */ },
+                    onClick = onReportClick,
                     color = Charcoal,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -600,6 +633,133 @@ private fun SettingsDialog(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             textAlign = TextAlign.Center
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReportDialog(
+    userEmail: String,
+    onDismiss: () -> Unit
+) {
+    var reportText by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    onDismiss()
+                }
+        )
+
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = CardDark,
+            tonalElevation = 8.dp,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .padding(16.dp)
+                .widthIn(max = 400.dp)
+                .fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        Icons.Outlined.Report,
+                        contentDescription = null,
+                        tint = OnDark,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Report an Issue",
+                        color = OnDark,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.Outlined.Close,
+                            contentDescription = "Close",
+                            tint = OnDark
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = reportText,
+                    onValueChange = { reportText = it },
+                    placeholder = { Text("Describe the issue...", color = Muted) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = OnDark,
+                        unfocusedTextColor = OnDark,
+                        focusedBorderColor = PrimaryContainer,
+                        unfocusedBorderColor = Charcoal
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Charcoal
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel", color = OnDark)
+                    }
+
+                    Button(
+                        onClick = {
+                            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:")
+                                putExtra(Intent.EXTRA_EMAIL, arrayOf("stadlerkieran@gmail.com"))
+                                putExtra(Intent.EXTRA_SUBJECT, "REPORT")
+                                putExtra(Intent.EXTRA_TEXT, reportText)
+                            }
+                            context.startActivity(Intent.createChooser(emailIntent, "Send Report"))
+                            onDismiss()
+                        },
+                        enabled = reportText.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF0A6CFF),
+                            disabledContainerColor = Charcoal
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Send", color = Color.White)
                     }
                 }
             }

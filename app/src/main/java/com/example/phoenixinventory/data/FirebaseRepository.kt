@@ -465,6 +465,7 @@ class FirebaseRepository {
                     name = "John Doe",
                     email = "stadlerkieran@gmail.com",
                     role = "Employee",
+                    phone = "071 234 5678",
                     createdAt = Date()
                 ),
                 User(
@@ -472,6 +473,7 @@ class FirebaseRepository {
                     name = "Jane Smith",
                     email = "jane.smith@example.com",
                     role = "Manager",
+                    phone = "082 345 6789",
                     createdAt = Date()
                 ),
                 User(
@@ -479,6 +481,7 @@ class FirebaseRepository {
                     name = "Mike Johnson",
                     email = "mike.j@example.com",
                     role = "Employee",
+                    phone = "083 456 7890",
                     createdAt = Date()
                 )
             )
