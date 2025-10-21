@@ -560,6 +560,25 @@ class FirebaseRepository {
     }
 
     /**
+     * Get all stolen, lost, or damaged items
+     */
+    suspend fun getStolenLostDamagedItems(): Result<List<InventoryItem>> = try {
+        val snapshot = db.collection(COLLECTION_ITEMS)
+            .whereIn("status", listOf("Stolen", "Lost", "Damaged"))
+            .get()
+            .await()
+
+        val items = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(InventoryItem::class.java)
+        }
+        Log.d(TAG, "getStolenLostDamagedItems: Retrieved ${items.size} items")
+        Result.success(items)
+    } catch (e: Exception) {
+        Log.e(TAG, "getStolenLostDamagedItems: Error", e)
+        Result.failure(e)
+    }
+
+    /**
      * Get count of checked out items
      */
     suspend fun getCheckedOutCount(): Result<Int> = try {

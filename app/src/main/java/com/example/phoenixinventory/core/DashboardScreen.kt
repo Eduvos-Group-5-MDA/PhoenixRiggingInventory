@@ -343,6 +343,16 @@ fun DashboardScreen(
                         navController.navigate(Dest.VIEW_REPORTS)
                     }
                 )
+
+                ActionRow(
+                    title = "View Stats",
+                    subtitle = "View detailed statistics and reports",
+                    icon = Icons.Outlined.BarChart,
+                    iconBg = Color(0xFFFF6F00),
+                    onClick = {
+                        navController.navigate(Dest.STATS)
+                    }
+                )
             }
 
             Spacer(Modifier.height(24.dp))

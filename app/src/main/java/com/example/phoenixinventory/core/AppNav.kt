@@ -53,6 +53,10 @@ object Dest {
     const val VIEW_REPORTS = "view_reports"
     const val REPORT_DETAIL = "report_detail"
     const val VIEW_DELETED_ITEMS = "view_deleted_items"
+    const val STATS = "stats"
+    const val STATS_ITEMS_OUT_30_DAYS = "stats_items_out_30_days"
+    const val STATS_TOTAL_VALUE = "stats_total_value"
+    const val STATS_LOST_DAMAGED_DELETED = "stats_lost_damaged_deleted"
 }
 
 // Helper composable to protect admin-only routes
@@ -93,7 +97,7 @@ fun AdminProtectedRoute(
         AccessDeniedScreen(
             onBack = {
                 Toast.makeText(context, "Admin or Manager access required", Toast.LENGTH_SHORT).show()
-                navController.popBackStack()
+                navController.navigate(Dest.DASHBOARD)
             }
         )
     }
@@ -188,14 +192,14 @@ fun AppNavHost() {
 
         composable(Dest.FORGOT_PASSWORD) {
             ForgotPasswordScreen(
-                onBack = { nav.popBackStack() }
+                onBack = { nav.navigate(Dest.LOGIN) }
             )
         }
 
         composable(Dest.REGISTER) {
             RegisterScreen(
                 onBack = { nav.navigate(Dest.HOME) },
-                onRegistered = { nav.popBackStack(Dest.HOME, inclusive = false) },
+                onRegistered = { nav.navigate(Dest.HOME) },
                 onGoToLogin = { nav.navigate(Dest.LOGIN) },
                 onTermsPrivacy = { nav.navigate(Dest.TERMS_PRIVACY) }
             )
@@ -270,7 +274,7 @@ fun AppNavHost() {
         composable(Dest.ADD_ITEM) {
             AdminProtectedRoute(navController = nav) {
                 AddItemScreen(
-                    onBack = { nav.popBackStack() },
+                    onBack = { nav.navigate(Dest.MANAGE_ITEMS) },
                     onSubmit = { newItem ->
                         val item = com.example.phoenixinventory.data.InventoryItem(
                             name = newItem.name,
@@ -285,16 +289,16 @@ fun AppNavHost() {
                             driversLicenseNeeded = newItem.driversLicenseNeeded
                         )
                         com.example.phoenixinventory.data.DataRepository.addItem(item)
-                        nav.popBackStack()
+                        nav.navigate(Dest.MANAGE_ITEMS)
                     },
-                    onCancel = { nav.popBackStack() }
+                    onCancel = { nav.navigate(Dest.MANAGE_ITEMS) }
                 )
             }
         }
 
         composable(Dest.VIEW_ALL_ITEMS) {
             ViewAllItemsScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.DASHBOARD) },
                 onItemClick = { itemId ->
                     nav.navigate("${Dest.ITEM_DETAIL}/$itemId")
                 }
@@ -303,7 +307,7 @@ fun AppNavHost() {
 
         composable(Dest.CHECKED_OUT_ITEMS) {
             CheckedOutItemsScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.DASHBOARD) },
                 onItemClick = { itemId ->
                     nav.navigate("${Dest.ITEM_DETAIL}/$itemId")
                 }
@@ -312,7 +316,7 @@ fun AppNavHost() {
 
         composable(Dest.MY_CHECKED_OUT_ITEMS) {
             MyCheckedOutItemsScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.DASHBOARD) },
                 onItemClick = { itemId ->
                     nav.navigate("${Dest.ITEM_DETAIL}/$itemId")
                 }
@@ -321,7 +325,7 @@ fun AppNavHost() {
 
         composable(Dest.CHECKED_IN_ITEMS) {
             CheckedInItemsScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.DASHBOARD) },
                 onItemClick = { itemId ->
                     nav.navigate("${Dest.ITEM_DETAIL}/$itemId")
                 }
@@ -330,7 +334,7 @@ fun AppNavHost() {
 
         composable(Dest.CHECKOUT_ITEMS_LIST) {
             CheckoutItemsListScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.DASHBOARD) },
                 onItemClick = { itemId ->
                     nav.navigate("${Dest.ITEM_CHECKOUT}/$itemId")
                 }
@@ -339,7 +343,7 @@ fun AppNavHost() {
 
         composable(Dest.CHECKIN_ITEMS_LIST) {
             CheckInItemsListScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.DASHBOARD) },
                 onItemClick = { itemId ->
                     nav.navigate("${Dest.CHECK_IN_OUT}/$itemId")
                 }
@@ -350,7 +354,7 @@ fun AppNavHost() {
             val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
             ItemDetailScreen(
                 itemId = itemId,
-                onBack = { nav.popBackStack() }
+                onBack = { nav.navigate(Dest.DASHBOARD) }
             )
         }
 
@@ -358,14 +362,14 @@ fun AppNavHost() {
             val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
             CheckInOutScreen(
                 itemId = itemId,
-                onBack = { nav.popBackStack() }
+                onBack = { nav.navigate(Dest.CHECKIN_ITEMS_LIST) }
             )
         }
 
         composable(Dest.MANAGE_USERS) {
             AdminProtectedRoute(navController = nav) {
                 ManageUsersScreen(
-                    onBack = { nav.popBackStack() },
+                    onBack = { nav.navigate(Dest.DASHBOARD) },
                     onUserClick = { userId ->
                         nav.navigate("${Dest.USER_EDIT}/$userId")
                     }
@@ -378,7 +382,7 @@ fun AppNavHost() {
             AdminProtectedRoute(navController = nav) {
                 UserEditScreen(
                     userId = userId,
-                    onBack = { nav.popBackStack() }
+                    onBack = { nav.navigate(Dest.MANAGE_USERS) }
                 )
             }
         }
@@ -399,7 +403,7 @@ fun AppNavHost() {
         composable(Dest.VIEW_ALL_ITEMS_EDIT) {
             AdminProtectedRoute(navController = nav) {
                 ViewAllItemsScreen(
-                    onBack = { nav.popBackStack() },
+                    onBack = { nav.navigate(Dest.MANAGE_ITEMS) },
                     onItemClick = { itemId ->
                         nav.navigate("${Dest.ITEM_EDIT}/$itemId")
                     }
@@ -411,7 +415,7 @@ fun AppNavHost() {
         composable(Dest.VIEW_ALL_ITEMS_DELETE) {
             AdminProtectedRoute(navController = nav) {
                 ViewAllItemsScreen(
-                    onBack = { nav.popBackStack() },
+                    onBack = { nav.navigate(Dest.MANAGE_ITEMS) },
                     onItemClick = { itemId ->
                         nav.navigate("${Dest.ITEM_DELETE}/$itemId")
                     }
@@ -422,7 +426,7 @@ fun AppNavHost() {
         // View all items for checkout
         composable(Dest.VIEW_ALL_ITEMS_CHECKOUT) {
             ViewAllItemsScreen(
-                onBack = { nav.popBackStack() },
+                onBack = { nav.navigate(Dest.DASHBOARD) },
                 onItemClick = { itemId ->
                     nav.navigate("${Dest.ITEM_CHECKOUT}/$itemId")
                 }
@@ -435,7 +439,7 @@ fun AppNavHost() {
             AdminProtectedRoute(navController = nav) {
                 ItemEditScreen(
                     itemId = itemId,
-                    onBack = { nav.popBackStack() }
+                    onBack = { nav.navigate(Dest.VIEW_ALL_ITEMS_EDIT) }
                 )
             }
         }
@@ -446,7 +450,7 @@ fun AppNavHost() {
             AdminProtectedRoute(navController = nav) {
                 ItemDeleteScreen(
                     itemId = itemId,
-                    onBack = { nav.popBackStack() }
+                    onBack = { nav.navigate(Dest.VIEW_ALL_ITEMS_DELETE) }
                 )
             }
         }
@@ -456,7 +460,7 @@ fun AppNavHost() {
             val itemId = backStackEntry.arguments?.getString("itemId") ?: return@composable
             ItemCheckoutScreen(
                 itemId = itemId,
-                onBack = { nav.popBackStack() }
+                onBack = { nav.navigate(Dest.CHECKOUT_ITEMS_LIST) }
             )
         }
 
@@ -469,7 +473,7 @@ fun AppNavHost() {
                 userName = userName,
                 userEmail = email,
                 userId = userId,
-                onBack = { nav.popBackStack() }
+                onBack = { nav.navigate(Dest.DASHBOARD) }
             )
         }
 
@@ -477,7 +481,7 @@ fun AppNavHost() {
         composable(Dest.VIEW_REPORTS) {
             AdminProtectedRoute(navController = nav) {
                 ViewReportsScreen(
-                    onBack = { nav.popBackStack() },
+                    onBack = { nav.navigate(Dest.DASHBOARD) },
                     onReportClick = { reportId ->
                         nav.navigate("${Dest.REPORT_DETAIL}/$reportId")
                     }
@@ -491,7 +495,7 @@ fun AppNavHost() {
             AdminProtectedRoute(navController = nav) {
                 ReportDetailScreen(
                     reportId = reportId,
-                    onBack = { nav.popBackStack() }
+                    onBack = { nav.navigate(Dest.VIEW_REPORTS) }
                 )
             }
         }
@@ -500,13 +504,52 @@ fun AppNavHost() {
         composable(Dest.VIEW_DELETED_ITEMS) {
             AdminProtectedRoute(navController = nav) {
                 ViewDeletedItemsScreen(
-                    onBack = { nav.popBackStack() }
+                    onBack = { nav.navigate(Dest.MANAGE_ITEMS) }
                 )
             }
         }
 
         composable(Dest.TERMS_PRIVACY) {
-            TermsPrivacyScreen(onBack = { nav.popBackStack() })
+            TermsPrivacyScreen(onBack = { nav.navigate(Dest.REGISTER) })
+        }
+
+        // Stats Screen (Admin/Manager only)
+        composable(Dest.STATS) {
+            AdminProtectedRoute(navController = nav) {
+                StatsScreen(
+                    onItemsOut30DaysClick = { nav.navigate(Dest.STATS_ITEMS_OUT_30_DAYS) },
+                    onTotalValueClick = { nav.navigate(Dest.STATS_TOTAL_VALUE) },
+                    onLostDamagedDeletedClick = { nav.navigate(Dest.STATS_LOST_DAMAGED_DELETED) },
+                    onBack = { nav.navigate(Dest.DASHBOARD) }
+                )
+            }
+        }
+
+        // Stats: Items Out 30+ Days (Admin/Manager only)
+        composable(Dest.STATS_ITEMS_OUT_30_DAYS) {
+            AdminProtectedRoute(navController = nav) {
+                ViewItemsOut30DaysScreen(
+                    onBack = { nav.navigate(Dest.STATS) }
+                )
+            }
+        }
+
+        // Stats: Total Value (Admin/Manager only)
+        composable(Dest.STATS_TOTAL_VALUE) {
+            AdminProtectedRoute(navController = nav) {
+                ViewTotalValueScreen(
+                    onBack = { nav.navigate(Dest.STATS) }
+                )
+            }
+        }
+
+        // Stats: Lost/Damaged/Deleted (Admin/Manager only)
+        composable(Dest.STATS_LOST_DAMAGED_DELETED) {
+            AdminProtectedRoute(navController = nav) {
+                ViewLostDamagedDeletedScreen(
+                    onBack = { nav.navigate(Dest.STATS) }
+                )
+            }
         }
     }
 }
