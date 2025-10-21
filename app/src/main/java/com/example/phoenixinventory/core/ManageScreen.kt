@@ -11,6 +11,7 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.NavigateNext
+import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,6 +31,7 @@ fun ManageScreen(
     onAddClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onViewDeletedClick: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -111,6 +113,14 @@ fun ManageScreen(
                 onClick = onDeleteClick
             )
 
+            ManageActionRow(
+                title = "View Deleted Items",
+                subtitle = "View and restore deleted items",
+                icon = Icons.Outlined.Restore,
+                iconBg = Color(0xFFFF6F00),
+                onClick = onViewDeletedClick
+            )
+
             Spacer(Modifier.height(16.dp))
             Text(
                 text = "Tip: You can manage all inventory actions here or from the Dashboard.",
@@ -179,6 +189,7 @@ private fun PreviewManage() {
             onAddClick = {},
             onEditClick = {},
             onDeleteClick = {},
+            onViewDeletedClick = {},
             onBack = {}
         )
     }

@@ -35,8 +35,10 @@ data class NewEquipment(
     val name: String,
     val serialId: String,
     val description: String,
+    val category: String,
     val condition: String,
     val status: String,
+    val value: Double,
     val permanentCheckout: Boolean,
     val permissionNeeded: Boolean,
     val driversLicenseNeeded: Boolean
@@ -63,10 +65,13 @@ fun AddItemScreen(
     var name by remember { mutableStateOf("") }
     var serial by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
+    var value by remember { mutableStateOf("") }
 
+    val categories = listOf("Power Tools", "Hand Tools", "Rigging Equipment", "Vehicle", "Miscellaneous")
     val conditions = listOf("Excellent", "Good", "Fair", "Poor")
     val statuses = listOf("Available", "Checked Out", "Under Maintenance", "Retired")
 
+    var category by remember { mutableStateOf(categories.first()) }
     var condition by remember { mutableStateOf(conditions.first()) }
     var status by remember { mutableStateOf(statuses.first()) }
 
@@ -185,6 +190,28 @@ fun AddItemScreen(
 
                     Spacer(Modifier.height(12.dp))
 
+                    // Value
+                    LabeledField(
+                        label = "Value (R)",
+                        value = value,
+                        onValueChange = { value = it },
+                        placeholder = "0.00",
+                        keyboard = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Category *
+                    DropdownField(
+                        label = "Category *",
+                        options = categories,
+                        selected = category,
+                        onSelected = { category = it }
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
                     // Condition *
                     DropdownField(
                         label = "Condition *",
@@ -232,8 +259,10 @@ fun AddItemScreen(
                                     name = name.trim(),
                                     serialId = serial.trim(),
                                     description = desc.trim(),
+                                    category = category,
                                     condition = condition,
                                     status = status,
+                                    value = value.toDoubleOrNull() ?: 0.0,
                                     permanentCheckout = permanent,
                                     permissionNeeded = permission,
                                     driversLicenseNeeded = license

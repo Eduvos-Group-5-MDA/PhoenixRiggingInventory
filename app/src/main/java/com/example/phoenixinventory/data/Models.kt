@@ -12,12 +12,14 @@ data class InventoryItem(
     val name: String = "",
     val serialId: String = "",
     val description: String = "",
+    val category: String = "", // Power Tools, Hand Tools, Rigging Equipment, Vehicle, Miscellaneous
     val condition: String = "", // Excellent, Good, Fair, Poor
     val status: String = "", // Available, Checked Out, Under Maintenance, Retired, Stolen, Lost, Damaged
     val value: Double = 0.0,
     val permanentCheckout: Boolean = false,
     val permissionNeeded: Boolean = false,
     val driversLicenseNeeded: Boolean = false,
+    val deleted: Boolean = false,
     @ServerTimestamp
     val createdAt: Date? = null,
     @ServerTimestamp
@@ -29,12 +31,14 @@ data class InventoryItem(
         name = "",
         serialId = "",
         description = "",
+        category = "",
         condition = "",
         status = "",
         value = 0.0,
         permanentCheckout = false,
         permissionNeeded = false,
         driversLicenseNeeded = false,
+        deleted = false,
         createdAt = null,
         updatedAt = null
     )
@@ -95,3 +99,39 @@ data class CheckedOutItemDetail(
     val checkoutRecord: CheckoutRecord,
     val daysOut: Int
 )
+
+data class Report(
+    @DocumentId
+    val id: String = UUID.randomUUID().toString(),
+    val title: String = "",
+    val description: String = "",
+    val category: String = "", // Issue, Suggestion, Bug, Other
+    val priority: String = "", // Low, Medium, High, Critical
+    val userId: String = "", // ID of user who submitted the report
+    val userName: String = "", // Name of user who submitted (for display)
+    val userEmail: String = "", // Email of user who submitted
+    val status: String = "Unresolved", // Unresolved, Resolved
+    val resolvedBy: String? = null, // ID of admin/manager who resolved it
+    val resolvedByName: String? = null, // Name of admin/manager who resolved it
+    @ServerTimestamp
+    val createdAt: Date? = null,
+    @ServerTimestamp
+    val resolvedAt: Date? = null
+) {
+    // No-arg constructor for Firestore
+    constructor() : this(
+        id = UUID.randomUUID().toString(),
+        title = "",
+        description = "",
+        category = "",
+        priority = "",
+        userId = "",
+        userName = "",
+        userEmail = "",
+        status = "Unresolved",
+        resolvedBy = null,
+        resolvedByName = null,
+        createdAt = null,
+        resolvedAt = null
+    )
+}

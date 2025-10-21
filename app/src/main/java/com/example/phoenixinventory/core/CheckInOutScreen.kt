@@ -47,13 +47,12 @@ fun CheckInOutScreen(
 
     // State for Firebase data
     var item by remember { mutableStateOf<InventoryItem?>(null) }
-    var users by remember { mutableStateOf(emptyList<com.example.phoenixinventory.data.User>()) }
     var currentUserId by remember { mutableStateOf("") }
+    var currentUserName by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var isProcessing by remember { mutableStateOf(false) }
 
     val isCheckOut = item?.status == "Available"
-    var selectedUserId by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
     // Load data from Firebase
@@ -63,11 +62,11 @@ fun CheckInOutScreen(
             // Get current user ID
             val userId = FirebaseAuth.getInstance().currentUser?.uid
             currentUserId = userId ?: ""
-            selectedUserId = currentUserId
 
-            // Load item and users
+            // Load item and current user info
             item = firebaseRepo.getItemById(itemId).getOrNull()
-            users = firebaseRepo.getAllUsers().getOrNull() ?: emptyList()
+            val currentUser = firebaseRepo.getUserById(currentUserId).getOrNull()
+            currentUserName = currentUser?.name ?: "Current User"
             isLoading = false
         }
     }
@@ -215,41 +214,32 @@ fun CheckInOutScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Select User", color = OnDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text("Checking Out To", color = OnDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                         Spacer(Modifier.height(8.dp))
 
-                        var expanded by remember { mutableStateOf(false) }
-                        val selectedUser = users.find { it.id == selectedUserId }
-
-                        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-                            OutlinedTextField(
-                                readOnly = true,
-                                value = selectedUser?.name ?: "",
-                                onValueChange = {},
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                                modifier = Modifier.menuAnchor().fillMaxWidth().clip(RoundedCornerShape(14.dp)),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = PrimaryContainer,
-                                    unfocusedBorderColor = PrimaryContainer.copy(alpha = 0.6f),
-                                    focusedTextColor = OnDark,
-                                    unfocusedTextColor = OnDark
+                        // Display current user (read-only)
+                        Surface(
+                            color = Primary,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Person,
+                                    contentDescription = null,
+                                    tint = OnDark,
+                                    modifier = Modifier.size(24.dp)
                                 )
-                            )
-                            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                users.forEach { user ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Column {
-                                                Text(user.name, color = OnDark)
-                                                Text(user.email, color = Muted, fontSize = 12.sp)
-                                            }
-                                        },
-                                        onClick = {
-                                            selectedUserId = user.id
-                                            expanded = false
-                                        }
-                                    )
-                                }
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    currentUserName,
+                                    color = OnDark,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
                         }
 
@@ -285,7 +275,7 @@ fun CheckInOutScreen(
                     scope.launch {
                         try {
                             if (isCheckOut) {
-                                val result = firebaseRepo.checkOutItem(itemId, selectedUserId, notes)
+                                val result = firebaseRepo.checkOutItem(itemId, currentUserId, notes)
                                 if (result.isSuccess) {
                                     Toast.makeText(ctx, "${currentItem.name} checked out successfully", Toast.LENGTH_SHORT).show()
                                     onBack()

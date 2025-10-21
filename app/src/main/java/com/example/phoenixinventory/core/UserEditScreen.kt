@@ -51,6 +51,10 @@ fun UserEditScreen(
     var editName by remember { mutableStateOf("") }
     var editEmail by remember { mutableStateOf("") }
     var editRole by remember { mutableStateOf("Employee") }
+    var editPhone by remember { mutableStateOf("") }
+    var editIdNumber by remember { mutableStateOf("") }
+    var editCompany by remember { mutableStateOf("") }
+    var editHasDriverLicense by remember { mutableStateOf(false) }
 
     val roles = listOf("Admin", "Manager", "Employee", "Guest")
 
@@ -63,6 +67,10 @@ fun UserEditScreen(
                 editName = it.name
                 editEmail = it.email
                 editRole = it.role
+                editPhone = it.phone
+                editIdNumber = it.idNumber ?: ""
+                editCompany = it.company ?: ""
+                editHasDriverLicense = it.hasDriverLicense ?: false
             }
             isLoading = false
         }
@@ -148,7 +156,15 @@ fun UserEditScreen(
                     Spacer(Modifier.height(12.dp))
                     LabeledField("Email *", editEmail, { editEmail = it }, "user@example.com", onSurfaceColor, mutedColor, primaryContainerColor, KeyboardType.Email)
                     Spacer(Modifier.height(12.dp))
+                    LabeledField("Phone", editPhone, { editPhone = it }, "+1 234 567 8900", onSurfaceColor, mutedColor, primaryContainerColor, KeyboardType.Phone)
+                    Spacer(Modifier.height(12.dp))
+                    LabeledField("ID Number", editIdNumber, { editIdNumber = it }, "ID or employee number", onSurfaceColor, mutedColor, primaryContainerColor)
+                    Spacer(Modifier.height(12.dp))
+                    LabeledField("Company", editCompany, { editCompany = it }, "Company name", onSurfaceColor, mutedColor, primaryContainerColor)
+                    Spacer(Modifier.height(12.dp))
                     DropdownField("Role *", roles, editRole, { editRole = it }, onSurfaceColor, mutedColor, primaryContainerColor)
+                    Spacer(Modifier.height(12.dp))
+                    LabeledCheckbox(editHasDriverLicense, { editHasDriverLicense = it }, "Has Driver's License", onSurfaceColor)
                 }
             }
 
@@ -167,7 +183,11 @@ fun UserEditScreen(
                             val updatedUser = user!!.copy(
                                 name = editName.trim(),
                                 email = editEmail.trim(),
-                                role = editRole
+                                role = editRole,
+                                phone = editPhone.trim(),
+                                idNumber = if (editIdNumber.isBlank()) null else editIdNumber.trim(),
+                                company = if (editCompany.isBlank()) null else editCompany.trim(),
+                                hasDriverLicense = editHasDriverLicense
                             )
                             val result = firebaseRepo.updateUser(updatedUser)
                             if (result.isSuccess) {
@@ -290,6 +310,28 @@ private fun DropdownField(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LabeledCheckbox(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    label: String,
+    onSurfaceColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(label, color = onSurfaceColor, fontSize = 14.sp)
     }
 }
 

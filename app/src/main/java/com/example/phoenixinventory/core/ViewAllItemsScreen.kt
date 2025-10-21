@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.FlowRow
 import com.example.phoenixinventory.data.DataRepository
 import com.example.phoenixinventory.data.FirebaseRepository
 import com.example.phoenixinventory.data.InventoryItem
@@ -44,6 +45,7 @@ fun ViewAllItemsScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var filterStatus by remember { mutableStateOf("All") }
+    var filterCategory by remember { mutableStateOf("All") }
     var items by remember { mutableStateOf<List<InventoryItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -59,8 +61,9 @@ fun ViewAllItemsScreen(
         val matchesSearch = item.name.contains(searchQuery, ignoreCase = true) ||
                 item.serialId.contains(searchQuery, ignoreCase = true) ||
                 item.description.contains(searchQuery, ignoreCase = true)
-        val matchesFilter = filterStatus == "All" || item.status == filterStatus
-        matchesSearch && matchesFilter
+        val matchesStatus = filterStatus == "All" || item.status == filterStatus
+        val matchesCategory = filterCategory == "All" || item.category == filterCategory
+        matchesSearch && matchesStatus && matchesCategory
     }
 
     Box(
@@ -126,16 +129,19 @@ fun ViewAllItemsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            /* ---------- Filter Chips ---------- */
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            /* ---------- Status Filter Chips ---------- */
+            Text("Status", color = mutedColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 listOf("All", "Available", "Checked Out", "Under Maintenance", "Damaged").forEach { status ->
                     FilterChip(
                         selected = filterStatus == status,
                         onClick = { filterStatus = status },
-                        label = { Text(status, fontSize = 12.sp) },
+                        label = { Text(status, fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = primaryContainerColor,
                             selectedLabelColor = onSurfaceColor,
@@ -146,7 +152,32 @@ fun ViewAllItemsScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
+
+            /* ---------- Category Filter Chips ---------- */
+            Text("Category", color = mutedColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                listOf("All", "Power Tools", "Hand Tools", "Rigging Equipment", "Vehicle", "Miscellaneous").forEach { category ->
+                    FilterChip(
+                        selected = filterCategory == category,
+                        onClick = { filterCategory = category },
+                        label = { Text(category, fontSize = 11.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = primaryContainerColor,
+                            selectedLabelColor = onSurfaceColor,
+                            containerColor = surfaceColor,
+                            labelColor = mutedColor
+                        )
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
 
             /* ---------- Items List ---------- */
             if (isLoading) {
@@ -211,7 +242,7 @@ private fun ItemCard(
                 Text(item.status, color = getStatusColor(item.status), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("$${item.value}", color = onSurfaceColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text("R${item.value}", color = onSurfaceColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text(item.condition, color = mutedColor, fontSize = 12.sp)
             }
         }

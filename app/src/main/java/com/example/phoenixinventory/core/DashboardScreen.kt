@@ -29,11 +29,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.phoenixinventory.ui.theme.ThemeState
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 
 /* ---------- Palette (same as other screens) ---------- */
 private val Carbon = Color(0xFF0E1116)
@@ -58,6 +53,7 @@ fun DashboardScreen(
     itemsOutOver30Days: Int,
     stolenLostDamagedValue: Double,
     stolenLostDamagedCount: Int,
+    userId: String,
     onLogout: () -> Unit = {},
     onViewAllItems: () -> Unit = {},
     onMyCheckedOutItems: () -> Unit = {},
@@ -70,7 +66,6 @@ fun DashboardScreen(
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
-    var showReportDialog by remember { mutableStateOf(false) }
 
     val backgroundColor = MaterialTheme.colorScheme.background
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -189,7 +184,7 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     StatCard(
-                        value = "$${"%.0f".format(totalValue)}",
+                        value = "R${"%.0f".format(totalValue)}",
                         label = "Total Value",
                         icon = Icons.Outlined.AttachMoney,
                         modifier = Modifier.weight(1f)
@@ -245,7 +240,7 @@ fun DashboardScreen(
                             }
                         }
                         Text(
-                            text = "$${"%.0f".format(stolenLostDamagedValue)}",
+                            text = "R${"%.0f".format(stolenLostDamagedValue)}",
                             color = Color(0xFFEF4444),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
@@ -338,6 +333,16 @@ fun DashboardScreen(
                     iconBg = Color(0xFFFF6F00),
                     onClick = onManageUsers
                 )
+
+                ActionRow(
+                    title = "View Reports",
+                    subtitle = "View and manage user reports",
+                    icon = Icons.Outlined.Report,
+                    iconBg = Color(0xFFFF6F00),
+                    onClick = {
+                        navController.navigate(Dest.VIEW_REPORTS)
+                    }
+                )
             }
 
             Spacer(Modifier.height(24.dp))
@@ -372,16 +377,8 @@ fun DashboardScreen(
                 onDismiss = { showSettingsDialog = false },
                 onReportClick = {
                     showSettingsDialog = false
-                    showReportDialog = true
+                    navController.navigate("${Dest.SUBMIT_REPORT}/$userName/$email/$userId")
                 }
-            )
-        }
-
-        /* ---------- Report Dialog ---------- */
-        if (showReportDialog) {
-            ReportDialog(
-                userEmail = email,
-                onDismiss = { showReportDialog = false }
             )
         }
     }
@@ -627,7 +624,7 @@ private fun SettingsDialog(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Text(
-                            "Version 1.0",
+                            "Version 1.0.30",
                             color = Muted,
                             fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -640,132 +637,6 @@ private fun SettingsDialog(
     }
 }
 
-@Composable
-private fun ReportDialog(
-    userEmail: String,
-    onDismiss: () -> Unit
-) {
-    var reportText by remember { mutableStateOf("") }
-    val context = LocalContext.current
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    onDismiss()
-                }
-        )
-
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = CardDark,
-            tonalElevation = 8.dp,
-            shadowElevation = 8.dp,
-            modifier = Modifier
-                .padding(16.dp)
-                .widthIn(max = 400.dp)
-                .fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        Icons.Outlined.Report,
-                        contentDescription = null,
-                        tint = OnDark,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        "Report an Issue",
-                        color = OnDark,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            Icons.Outlined.Close,
-                            contentDescription = "Close",
-                            tint = OnDark
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = reportText,
-                    onValueChange = { reportText = it },
-                    placeholder = { Text("Describe the issue...", color = Muted) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = OnDark,
-                        unfocusedTextColor = OnDark,
-                        focusedBorderColor = PrimaryContainer,
-                        unfocusedBorderColor = Charcoal
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Charcoal
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancel", color = OnDark)
-                    }
-
-                    Button(
-                        onClick = {
-                            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                data = Uri.parse("mailto:")
-                                putExtra(Intent.EXTRA_EMAIL, arrayOf("stadlerkieran@gmail.com"))
-                                putExtra(Intent.EXTRA_SUBJECT, "REPORT")
-                                putExtra(Intent.EXTRA_TEXT, reportText)
-                            }
-                            context.startActivity(Intent.createChooser(emailIntent, "Send Report"))
-                            onDismiss()
-                        },
-                        enabled = reportText.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF0A6CFF),
-                            disabledContainerColor = Charcoal
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Send", color = Color.White)
-                    }
-                }
-            }
-        }
-    }
-}
 
 /* ---------- Preview ---------- */
 @Preview(showBackground = true, backgroundColor = 0xFF0E1116, widthDp = 412, heightDp = 900)
@@ -783,7 +654,8 @@ private fun PreviewDashboard() {
             totalValue = 2490.0,
             itemsOutOver30Days = 1,
             stolenLostDamagedValue = 520.0,
-            stolenLostDamagedCount = 1
+            stolenLostDamagedCount = 1,
+            userId = "preview-user-id"
         )
     }
 }

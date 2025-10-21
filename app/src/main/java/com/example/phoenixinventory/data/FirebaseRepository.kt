@@ -20,12 +20,13 @@ class FirebaseRepository {
         private const val COLLECTION_ITEMS = "inventory_items"
         private const val COLLECTION_USERS = "users"
         private const val COLLECTION_CHECKOUTS = "checkout_records"
+        private const val COLLECTION_REPORTS = "reports"
     }
 
     // ==================== Item Operations ====================
 
     /**
-     * Get all inventory items from Firestore
+     * Get all inventory items from Firestore (excluding deleted items)
      */
     suspend fun getAllItems(): Result<List<InventoryItem>> = try {
         val snapshot = db.collection(COLLECTION_ITEMS)
@@ -34,6 +35,10 @@ class FirebaseRepository {
 
         val items = snapshot.documents.mapNotNull { doc ->
             doc.toObject(InventoryItem::class.java)
+        }.filter { item ->
+            // Filter out items where deleted is explicitly true
+            // Items without the deleted field are treated as not deleted
+            !item.deleted
         }
         Log.d(TAG, "getAllItems: Retrieved ${items.size} items")
         Result.success(items)
@@ -99,29 +104,64 @@ class FirebaseRepository {
     }
 
     /**
-     * Delete an item from Firestore
+     * Soft delete an item (marks as deleted, doesn't actually delete)
      */
     suspend fun deleteItem(id: String): Result<Unit> = try {
-        // Delete the item
         db.collection(COLLECTION_ITEMS)
             .document(id)
-            .delete()
+            .update(
+                mapOf(
+                    "deleted" to true,
+                    "updatedAt" to Date()
+                )
+            )
             .await()
 
-        // Delete associated checkout records
-        val checkouts = db.collection(COLLECTION_CHECKOUTS)
-            .whereEqualTo("itemId", id)
+        Log.d(TAG, "deleteItem: Soft deleted item $id")
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Log.e(TAG, "deleteItem: Error soft deleting item $id", e)
+        Result.failure(e)
+    }
+
+    /**
+     * Get all deleted items
+     */
+    suspend fun getDeletedItems(): Result<List<InventoryItem>> = try {
+        val snapshot = db.collection(COLLECTION_ITEMS)
+            .whereEqualTo("deleted", true)
             .get()
             .await()
 
-        checkouts.documents.forEach { doc ->
-            doc.reference.delete().await()
+        val items = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(InventoryItem::class.java)
         }
+        Log.d(TAG, "getDeletedItems: Retrieved ${items.size} deleted items")
+        Result.success(items)
+    } catch (e: Exception) {
+        Log.e(TAG, "getDeletedItems: Error", e)
+        Result.failure(e)
+    }
 
-        Log.d(TAG, "deleteItem: Deleted item $id and associated checkouts")
+    /**
+     * Restore a deleted item (marks as available)
+     */
+    suspend fun restoreItem(id: String): Result<Unit> = try {
+        db.collection(COLLECTION_ITEMS)
+            .document(id)
+            .update(
+                mapOf(
+                    "deleted" to false,
+                    "status" to "Available",
+                    "updatedAt" to Date()
+                )
+            )
+            .await()
+
+        Log.d(TAG, "restoreItem: Restored item $id")
         Result.success(Unit)
     } catch (e: Exception) {
-        Log.e(TAG, "deleteItem: Error deleting item $id", e)
+        Log.e(TAG, "restoreItem: Error restoring item $id", e)
         Result.failure(e)
     }
 
@@ -213,6 +253,37 @@ class FirebaseRepository {
         Result.failure(e)
     }
 
+    /**
+     * Hard delete a user (permanently removes from database)
+     * Should only be called by admins or managers
+     */
+    suspend fun hardDeleteUser(userId: String): Result<Unit> {
+        return try {
+            // Check if user has any active checkouts
+            val checkoutsSnapshot = db.collection(COLLECTION_CHECKOUTS)
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("checkedInAt", null)
+                .get()
+                .await()
+
+            if (!checkoutsSnapshot.isEmpty) {
+                return Result.failure(Exception("Cannot delete user with active checkouts. Please check in all items first."))
+            }
+
+            // Permanently delete the user
+            db.collection(COLLECTION_USERS)
+                .document(userId)
+                .delete()
+                .await()
+
+            Log.d(TAG, "hardDeleteUser: Permanently deleted user $userId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "hardDeleteUser: Error deleting user $userId", e)
+            Result.failure(e)
+        }
+    }
+
     // ==================== Checkout Operations ====================
 
     /**
@@ -295,6 +366,62 @@ class FirebaseRepository {
     }
 
     /**
+     * Get current checkout info for a specific item (if checked out)
+     */
+    suspend fun getCurrentCheckout(itemId: String): Result<CheckedOutItemDetail?> {
+        return try {
+            Log.d(TAG, "getCurrentCheckout: Looking for checkout for itemId: $itemId")
+
+            val checkoutSnapshot = db.collection(COLLECTION_CHECKOUTS)
+                .whereEqualTo("itemId", itemId)
+                .whereEqualTo("checkedInAt", null)
+                .get()
+                .await()
+
+            Log.d(TAG, "getCurrentCheckout: Found ${checkoutSnapshot.size()} checkout records")
+
+            if (checkoutSnapshot.isEmpty) {
+                Log.d(TAG, "getCurrentCheckout: No active checkout for item $itemId")
+                return Result.success(null)
+            }
+
+            val checkoutDoc = checkoutSnapshot.documents.first()
+            val checkoutRecord = checkoutDoc.toObject(CheckoutRecord::class.java)
+                ?: return Result.success(null)
+
+            Log.d(TAG, "getCurrentCheckout: Checkout record - itemId: ${checkoutRecord.itemId}, userId: ${checkoutRecord.userId}")
+
+            // Get user details
+            Log.d(TAG, "getCurrentCheckout: Fetching user with ID: ${checkoutRecord.userId}")
+            val userDoc = db.collection(COLLECTION_USERS).document(checkoutRecord.userId).get().await()
+            Log.d(TAG, "getCurrentCheckout: User document exists: ${userDoc.exists()}")
+            val user = userDoc.toObject(User::class.java)
+            Log.d(TAG, "getCurrentCheckout: User found: ${user?.name}")
+            if (user == null) {
+                Log.e(TAG, "getCurrentCheckout: User is null for userId: ${checkoutRecord.userId}")
+                return Result.success(null)
+            }
+
+            // Get item details
+            val itemDoc = db.collection(COLLECTION_ITEMS).document(itemId).get().await()
+            val item = itemDoc.toObject(InventoryItem::class.java) ?: return Result.success(null)
+
+            val daysOut = if (checkoutRecord.checkedOutAt != null) {
+                TimeUnit.MILLISECONDS.toDays(
+                    Date().time - checkoutRecord.checkedOutAt!!.time
+                ).toInt()
+            } else 0
+
+            val detail = CheckedOutItemDetail(item, user, checkoutRecord, daysOut)
+            Log.d(TAG, "getCurrentCheckout: Retrieved checkout info for item $itemId")
+            Result.success(detail)
+        } catch (e: Exception) {
+            Log.e(TAG, "getCurrentCheckout: Error", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Get all currently checked out items with full details
      */
     suspend fun getCheckedOutItems(): Result<List<CheckedOutItemDetail>> = try {
@@ -310,6 +437,9 @@ class FirebaseRepository {
             val itemDoc =
                 db.collection(COLLECTION_ITEMS).document(checkoutRecord.itemId).get().await()
             val item = itemDoc.toObject(InventoryItem::class.java) ?: return@mapNotNull null
+
+            // Filter out deleted items
+            if (item.deleted) return@mapNotNull null
 
             val userDoc =
                 db.collection(COLLECTION_USERS).document(checkoutRecord.userId).get().await()
@@ -350,6 +480,9 @@ class FirebaseRepository {
             val itemDoc =
                 db.collection(COLLECTION_ITEMS).document(checkoutRecord.itemId).get().await()
             val item = itemDoc.toObject(InventoryItem::class.java) ?: return@mapNotNull null
+
+            // Filter out deleted items
+            if (item.deleted) return@mapNotNull null
 
             val userDoc =
                 db.collection(COLLECTION_USERS).document(checkoutRecord.userId).get().await()
@@ -587,5 +720,130 @@ class FirebaseRepository {
             Log.e(TAG, "initializeSampleData: Error", e)
             Result.failure(e)
         }
+    }
+
+    // ==================== Report Operations ====================
+
+    /**
+     * Create a new report
+     */
+    suspend fun createReport(report: Report): Result<Unit> = try {
+        db.collection(COLLECTION_REPORTS)
+            .document(report.id)
+            .set(report)
+            .await()
+        Log.d(TAG, "createReport: Report ${report.id} created successfully")
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Log.e(TAG, "createReport: Error", e)
+        Result.failure(e)
+    }
+
+    /**
+     * Get all reports (for admins/managers)
+     */
+    suspend fun getAllReports(): Result<List<Report>> = try {
+        val snapshot = db.collection(COLLECTION_REPORTS)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .get()
+            .await()
+
+        val reports = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(Report::class.java)
+        }
+        Log.d(TAG, "getAllReports: Retrieved ${reports.size} reports")
+        Result.success(reports)
+    } catch (e: Exception) {
+        Log.e(TAG, "getAllReports: Error", e)
+        Result.failure(e)
+    }
+
+    /**
+     * Get reports by status
+     */
+    suspend fun getReportsByStatus(status: String): Result<List<Report>> = try {
+        val snapshot = db.collection(COLLECTION_REPORTS)
+            .whereEqualTo("status", status)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .get()
+            .await()
+
+        val reports = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(Report::class.java)
+        }
+        Log.d(TAG, "getReportsByStatus: Retrieved ${reports.size} $status reports")
+        Result.success(reports)
+    } catch (e: Exception) {
+        Log.e(TAG, "getReportsByStatus: Error", e)
+        Result.failure(e)
+    }
+
+    /**
+     * Get a specific report by ID
+     */
+    suspend fun getReportById(id: String): Result<Report?> = try {
+        val document = db.collection(COLLECTION_REPORTS)
+            .document(id)
+            .get()
+            .await()
+
+        val report = document.toObject(Report::class.java)
+        Log.d(TAG, "getReportById: Retrieved report $id")
+        Result.success(report)
+    } catch (e: Exception) {
+        Log.e(TAG, "getReportById: Error", e)
+        Result.failure(e)
+    }
+
+    /**
+     * Update report status (resolve/unresolve)
+     */
+    suspend fun updateReportStatus(
+        reportId: String,
+        status: String,
+        resolvedBy: String?,
+        resolvedByName: String?
+    ): Result<Unit> = try {
+        val updates = mutableMapOf<String, Any?>(
+            "status" to status
+        )
+
+        if (status == "Resolved") {
+            updates["resolvedBy"] = resolvedBy
+            updates["resolvedByName"] = resolvedByName
+            updates["resolvedAt"] = com.google.firebase.firestore.FieldValue.serverTimestamp()
+        } else {
+            updates["resolvedBy"] = null
+            updates["resolvedByName"] = null
+            updates["resolvedAt"] = null
+        }
+
+        db.collection(COLLECTION_REPORTS)
+            .document(reportId)
+            .update(updates)
+            .await()
+
+        Log.d(TAG, "updateReportStatus: Report $reportId status updated to $status")
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Log.e(TAG, "updateReportStatus: Error", e)
+        Result.failure(e)
+    }
+
+    /**
+     * Get unresolved reports count
+     */
+    suspend fun getUnresolvedReportsCount(): Result<Int> = try {
+        val snapshot = db.collection(COLLECTION_REPORTS)
+            .whereEqualTo("status", "Unresolved")
+            .get()
+            .await()
+
+        val count = snapshot.size()
+        Log.d(TAG, "getUnresolvedReportsCount: $count unresolved reports")
+        Result.success(count)
+    } catch (e: Exception) {
+        Log.e(TAG, "getUnresolvedReportsCount: Error", e)
+        Result.failure(e)
     }
 }

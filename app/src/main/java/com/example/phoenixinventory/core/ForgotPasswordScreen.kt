@@ -67,17 +67,32 @@ fun ForgotPasswordScreen(
         isLoading = true
         scope.launch {
             try {
+                // Use Firebase Auth language code if needed
+                auth.useAppLanguage()
                 auth.sendPasswordResetEmail(email.trim()).await()
                 isLoading = false
                 showSuccessDialog = true
+                android.util.Log.d("ForgotPassword", "Password reset email sent successfully to ${email.trim()}")
             } catch (e: Exception) {
                 isLoading = false
+                android.util.Log.e("ForgotPassword", "Failed to send password reset email", e)
+                android.util.Log.e("ForgotPassword", "Exception type: ${e.javaClass.name}")
+                android.util.Log.e("ForgotPassword", "Exception message: ${e.message}")
+
                 emailError = when {
-                    e.message?.contains("no user record", ignoreCase = true) == true ->
+                    e.message?.contains("no user record", ignoreCase = true) == true ||
+                    e.message?.contains("USER_NOT_FOUND", ignoreCase = true) == true ->
                         "No account found with this email"
                     e.message?.contains("network", ignoreCase = true) == true ->
                         "Network error. Please check your connection"
-                    else -> "Failed to send reset email. Please try again"
+                    e.message?.contains("INVALID_EMAIL", ignoreCase = true) == true ->
+                        "Invalid email address format"
+                    e.message?.contains("too many requests", ignoreCase = true) == true ->
+                        "Too many requests. Please try again later"
+                    e.message?.contains("CAPTCHA", ignoreCase = true) == true ||
+                    e.message?.contains("reCAPTCHA", ignoreCase = true) == true ->
+                        "Verification failed. Please ensure you're using a real device with Google Play Services, or check Firebase console settings"
+                    else -> "Failed to send reset email: ${e.message ?: "Unknown error"}"
                 }
                 Toast.makeText(context, emailError, Toast.LENGTH_LONG).show()
             }

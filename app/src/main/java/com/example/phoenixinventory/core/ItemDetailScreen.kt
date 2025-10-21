@@ -40,12 +40,20 @@ fun ItemDetailScreen(
     val firebaseRepo = remember { FirebaseRepository() }
     val scope = rememberCoroutineScope()
     var item by remember { mutableStateOf<InventoryItem?>(null) }
+    var checkoutUserName by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(itemId) {
         scope.launch {
             isLoading = true
             item = firebaseRepo.getItemById(itemId).getOrNull()
+
+            // Get checkout info if item is checked out
+            if (item?.status == "Checked Out") {
+                val checkoutDetail = firebaseRepo.getCurrentCheckout(itemId).getOrNull()
+                checkoutUserName = checkoutDetail?.user?.name
+            }
+
             isLoading = false
         }
     }
@@ -129,9 +137,49 @@ fun ItemDetailScreen(
                     DetailRow("Name", item?.name ?: "")
                     DetailRow("Serial/ID", item?.serialId ?: "")
                     DetailRow("Description", item?.description ?: "")
+                    DetailRow("Category", item?.category ?: "")
                     DetailRow("Condition", item?.condition ?: "")
                     DetailRow("Status", item?.status ?: "")
-                    DetailRow("Value", "$${item?.value ?: 0.0}")
+                    DetailRow("Value", "R${item?.value ?: 0.0}")
+
+                    // Show checkout info if item is checked out
+                    android.util.Log.d("ItemDetailScreen", "Display check - Status: ${item?.status}, checkoutUserName: $checkoutUserName")
+                    if (item?.status == "Checked Out" && checkoutUserName != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            color = Color(0xFF0A6CFF).copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Person,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0A6CFF),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        "Checked out to:",
+                                        color = mutedColor,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        checkoutUserName!!,
+                                        color = onSurfaceColor,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
+
                     if (item?.permanentCheckout == true) DetailRow("Permanent Checkout", "Yes")
                     if (item?.permissionNeeded == true) DetailRow("Permission Needed", "Yes")
                     if (item?.driversLicenseNeeded == true) DetailRow("Driver's License", "Required")

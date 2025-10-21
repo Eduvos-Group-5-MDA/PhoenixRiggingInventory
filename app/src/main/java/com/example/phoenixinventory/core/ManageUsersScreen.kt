@@ -42,16 +42,37 @@ fun ManageUsersScreen(
     var selectedUser by remember { mutableStateOf<User?>(null) }
     var userCheckouts by remember { mutableStateOf<List<CheckedOutItemDetail>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var currentUser by remember { mutableStateOf<User?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var userToDelete by remember { mutableStateOf<User?>(null) }
+    var deleteErrorMessage by remember { mutableStateOf<String?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+    var filterRole by remember { mutableStateOf("All") }
     val firebaseRepo = remember { FirebaseRepository() }
     val scope = rememberCoroutineScope()
+
+    // Check if current user is admin or manager
+    // For now, we'll assume the current user is an admin if they can access this screen
+    // In a real app, this would come from authentication
+    val canDeleteUsers = true  // Temporarily set to true for testing
 
     LaunchedEffect(Unit) {
         scope.launch {
             isLoading = true
             users = firebaseRepo.getAllUsers().getOrNull() ?: emptyList()
             userCheckouts = firebaseRepo.getCheckedOutItems().getOrNull() ?: emptyList()
+            currentUser = firebaseRepo.getCurrentUser().getOrNull()
             isLoading = false
         }
+    }
+
+    // Filter users based on search and role
+    val filteredUsers = users.filter { user ->
+        val matchesSearch = user.name.contains(searchQuery, ignoreCase = true) ||
+                user.email.contains(searchQuery, ignoreCase = true) ||
+                user.phone.contains(searchQuery, ignoreCase = true)
+        val matchesFilter = filterRole == "All" || user.role == filterRole
+        matchesSearch && matchesFilter
     }
 
     Box(
@@ -90,24 +111,84 @@ fun ManageUsersScreen(
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text("Manage Users", color = onSurfaceColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("${users.size} total users", color = mutedColor, fontSize = 13.sp)
+                    Text("${filteredUsers.size} users", color = mutedColor, fontSize = 13.sp)
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            /* ---------- Users List ---------- */
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
+            /* ---------- Search Bar ---------- */
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search users...", color = mutedColor) },
+                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = onSurfaceColor) },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryContainerColor,
+                    unfocusedBorderColor = primaryContainerColor.copy(alpha = 0.6f),
+                    cursorColor = onSurfaceColor,
+                    focusedTextColor = onSurfaceColor,
+                    unfocusedTextColor = onSurfaceColor
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            /* ---------- Filter Chips ---------- */
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                items(users) { user ->
-                    UserCard(
-                        user = user,
-                        isSelected = user == selectedUser,
-                        onClick = { selectedUser = if (selectedUser == user) null else user },
-                        onEditClick = { onUserClick(user.id) }
+                listOf("All", "Admin", "Manager", "Employee", "Guest").forEach { role ->
+                    FilterChip(
+                        selected = filterRole == role,
+                        onClick = { filterRole = role },
+                        label = { Text(role, fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = primaryContainerColor,
+                            selectedLabelColor = onSurfaceColor,
+                            containerColor = surfaceColor,
+                            labelColor = mutedColor
+                        )
                     )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            /* ---------- Users List ---------- */
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = primaryContainerColor)
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(filteredUsers) { user ->
+                        UserCard(
+                            user = user,
+                            isSelected = user == selectedUser,
+                            onClick = { selectedUser = if (selectedUser == user) null else user },
+                            onEditClick = { onUserClick(user.id) },
+                            onDeleteClick = if (canDeleteUsers) {
+                                {
+                                    userToDelete = user
+                                    showDeleteDialog = true
+                                    deleteErrorMessage = null
+                                }
+                            } else null,
+                            canDelete = canDeleteUsers && user.id != currentUser?.id
+                        )
+                    }
                 }
             }
 
@@ -166,6 +247,79 @@ fun ManageUsersScreen(
 
             Spacer(Modifier.height(16.dp))
         }
+
+        /* ---------- Delete Confirmation Dialog ---------- */
+        if (showDeleteDialog && userToDelete != null) {
+            AlertDialog(
+                onDismissRequest = {
+                    showDeleteDialog = false
+                    userToDelete = null
+                    deleteErrorMessage = null
+                },
+                title = {
+                    Text("Delete User", fontWeight = FontWeight.Bold)
+                },
+                text = {
+                    Column {
+                        Text("Are you sure you want to permanently delete ${userToDelete!!.name}?")
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "This action cannot be undone.",
+                            color = Color(0xFFEF4444),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (deleteErrorMessage != null) {
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                deleteErrorMessage!!,
+                                color = Color(0xFFEF4444),
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val result = firebaseRepo.hardDeleteUser(userToDelete!!.id)
+                                if (result.isSuccess) {
+                                    // Refresh the user list
+                                    users = firebaseRepo.getAllUsers().getOrNull() ?: emptyList()
+                                    userCheckouts = firebaseRepo.getCheckedOutItems().getOrNull() ?: emptyList()
+                                    if (selectedUser?.id == userToDelete!!.id) {
+                                        selectedUser = null
+                                    }
+                                    showDeleteDialog = false
+                                    userToDelete = null
+                                    deleteErrorMessage = null
+                                } else {
+                                    deleteErrorMessage = result.exceptionOrNull()?.message
+                                        ?: "Failed to delete user"
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFEF4444)
+                        )
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog = false
+                            userToDelete = null
+                            deleteErrorMessage = null
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -174,7 +328,9 @@ private fun UserCard(
     user: User,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onEditClick: () -> Unit
+    onEditClick: () -> Unit,
+    onDeleteClick: (() -> Unit)? = null,
+    canDelete: Boolean = false
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
@@ -229,16 +385,33 @@ private fun UserCard(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
-                IconButton(
-                    onClick = onEditClick,
-                    modifier = Modifier.size(32.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        Icons.Outlined.Edit,
-                        contentDescription = "Edit User",
-                        tint = onSurfaceColor,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    IconButton(
+                        onClick = onEditClick,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.Edit,
+                            contentDescription = "Edit User",
+                            tint = onSurfaceColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    if (canDelete && onDeleteClick != null) {
+                        IconButton(
+                            onClick = onDeleteClick,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Delete,
+                                contentDescription = "Delete User",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

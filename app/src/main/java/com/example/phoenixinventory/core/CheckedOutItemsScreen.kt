@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.FlowRow
 import com.example.phoenixinventory.data.CheckedOutItemDetail
 import com.example.phoenixinventory.data.DataRepository
 import com.example.phoenixinventory.data.FirebaseRepository
@@ -38,6 +39,7 @@ fun CheckedOutItemsScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var filterDaysOut by remember { mutableStateOf("All") }
+    var filterCategory by remember { mutableStateOf("All") }
 
     var allCheckedOutItems by remember { mutableStateOf<List<CheckedOutItemDetail>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -70,7 +72,9 @@ fun CheckedOutItemsScreen(
             else -> true
         }
 
-        matchesSearch && matchesFilter
+        val matchesCategory = filterCategory == "All" || detail.item.category == filterCategory
+
+        matchesSearch && matchesFilter && matchesCategory
     }
 
     Box(
@@ -136,16 +140,19 @@ fun CheckedOutItemsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            /* ---------- Filter Chips ---------- */
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            /* ---------- Days Out Filter Chips ---------- */
+            Text("Days Out", color = mutedColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 listOf("All", "30+ Days", "Under 30 Days").forEach { filter ->
                     FilterChip(
                         selected = filterDaysOut == filter,
                         onClick = { filterDaysOut = filter },
-                        label = { Text(filter, fontSize = 12.sp) },
+                        label = { Text(filter, fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = primaryContainerColor,
                             selectedLabelColor = onSurfaceColor,
@@ -156,7 +163,32 @@ fun CheckedOutItemsScreen(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
+
+            /* ---------- Category Filter Chips ---------- */
+            Text("Category", color = mutedColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                listOf("All", "Power Tools", "Hand Tools", "Rigging Equipment", "Vehicle", "Miscellaneous").forEach { category ->
+                    FilterChip(
+                        selected = filterCategory == category,
+                        onClick = { filterCategory = category },
+                        label = { Text(category, fontSize = 11.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = primaryContainerColor,
+                            selectedLabelColor = onSurfaceColor,
+                            containerColor = surfaceColor,
+                            labelColor = mutedColor
+                        )
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
 
             /* ---------- Items List ---------- */
             if (isLoading) {

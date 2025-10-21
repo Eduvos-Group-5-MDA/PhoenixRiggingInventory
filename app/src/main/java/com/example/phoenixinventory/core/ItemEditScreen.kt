@@ -47,6 +47,7 @@ fun ItemEditScreen(
     val scope = rememberCoroutineScope()
 
     var item by remember { mutableStateOf<InventoryItem?>(null) }
+    var checkoutUserName by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isProcessing by remember { mutableStateOf(false) }
 
@@ -54,6 +55,7 @@ fun ItemEditScreen(
     var editName by remember { mutableStateOf("") }
     var editSerial by remember { mutableStateOf("") }
     var editDesc by remember { mutableStateOf("") }
+    var editCategory by remember { mutableStateOf("Miscellaneous") }
     var editCondition by remember { mutableStateOf("Good") }
     var editStatus by remember { mutableStateOf("Available") }
     var editValue by remember { mutableStateOf("0") }
@@ -61,6 +63,7 @@ fun ItemEditScreen(
     var editPermission by remember { mutableStateOf(false) }
     var editLicense by remember { mutableStateOf(false) }
 
+    val categories = listOf("Power Tools", "Hand Tools", "Rigging Equipment", "Vehicle", "Miscellaneous")
     val conditions = listOf("Excellent", "Good", "Fair", "Poor")
     val statuses = listOf("Available", "Checked Out", "Under Maintenance", "Retired", "Damaged", "Lost", "Stolen")
 
@@ -73,12 +76,19 @@ fun ItemEditScreen(
                 editName = it.name
                 editSerial = it.serialId
                 editDesc = it.description
+                editCategory = it.category.ifBlank { "Miscellaneous" }
                 editCondition = it.condition
                 editStatus = it.status
                 editValue = it.value.toString()
                 editPermanent = it.permanentCheckout
                 editPermission = it.permissionNeeded
                 editLicense = it.driversLicenseNeeded
+
+                // Get checkout info if item is checked out
+                if (it.status == "Checked Out") {
+                    val checkoutDetail = firebaseRepo.getCurrentCheckout(itemId).getOrNull()
+                    checkoutUserName = checkoutDetail?.user?.name
+                }
             }
             isLoading = false
         }
@@ -166,11 +176,50 @@ fun ItemEditScreen(
                     Spacer(Modifier.height(12.dp))
                     LabeledTextArea("Description", editDesc, { editDesc = it }, "Description")
                     Spacer(Modifier.height(12.dp))
-                    LabeledField("Value ($)", editValue, { editValue = it }, "0.00", KeyboardType.Decimal)
+                    LabeledField("Value (R)", editValue, { editValue = it }, "0.00", KeyboardType.Decimal)
+                    Spacer(Modifier.height(12.dp))
+                    DropdownField("Category *", categories, editCategory) { editCategory = it }
                     Spacer(Modifier.height(12.dp))
                     DropdownField("Condition *", conditions, editCondition) { editCondition = it }
                     Spacer(Modifier.height(12.dp))
                     DropdownField("Status *", statuses, editStatus) { editStatus = it }
+
+                    // Show checkout info if item is checked out
+                    if (editStatus == "Checked Out" && checkoutUserName != null) {
+                        Spacer(Modifier.height(12.dp))
+                        Surface(
+                            color = Color(0xFF0A6CFF).copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Person,
+                                    contentDescription = null,
+                                    tint = Color(0xFF0A6CFF),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        "Checked out to:",
+                                        color = Muted,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        checkoutUserName!!,
+                                        color = OnDark,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Spacer(Modifier.height(12.dp))
                     LabeledCheckbox(editPermanent, { editPermanent = it }, "Permanent checkout")
                     LabeledCheckbox(editPermission, { editPermission = it }, "Permission needed")
@@ -190,6 +239,7 @@ fun ItemEditScreen(
                                 name = editName.trim(),
                                 serialId = editSerial.trim(),
                                 description = editDesc.trim(),
+                                category = editCategory,
                                 condition = editCondition,
                                 status = editStatus,
                                 value = editValue.toDoubleOrNull() ?: 0.0,

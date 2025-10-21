@@ -49,6 +49,10 @@ object Dest {
     const val USER_EDIT = "user_edit"
     const val MANAGE_ITEMS = "manage_items"
     const val TERMS_PRIVACY = "terms_privacy"
+    const val SUBMIT_REPORT = "submit_report"
+    const val VIEW_REPORTS = "view_reports"
+    const val REPORT_DETAIL = "report_detail"
+    const val VIEW_DELETED_ITEMS = "view_deleted_items"
 }
 
 // Helper composable to protect admin-only routes
@@ -203,6 +207,7 @@ fun AppNavHost() {
 
             var userName by remember { mutableStateOf("Loading...") }
             var email by remember { mutableStateOf("") }
+            var userId by remember { mutableStateOf("") }
             var role by remember { mutableStateOf("") }
             var totalItems by remember { mutableStateOf(0) }
             var checkedOut by remember { mutableStateOf(0) }
@@ -214,9 +219,10 @@ fun AppNavHost() {
             LaunchedEffect(Unit) {
                 scope.launch {
                     // Get current user
-                    val userId = FirebaseAuth.getInstance().currentUser?.uid
-                    if (userId != null) {
-                        val currentUser = firebaseRepo.getUserById(userId).getOrNull()
+                    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                    if (currentUserId != null) {
+                        userId = currentUserId
+                        val currentUser = firebaseRepo.getUserById(currentUserId).getOrNull()
                         userName = currentUser?.name ?: "User"
                         email = currentUser?.email ?: ""
                         role = currentUser?.role ?: "Employee"
@@ -243,6 +249,7 @@ fun AppNavHost() {
                 itemsOutOver30Days = itemsOutOver30Days,
                 stolenLostDamagedValue = stolenLostDamagedValue,
                 stolenLostDamagedCount = stolenLostDamagedCount,
+                userId = userId,
                 onLogout = {
                     FirebaseAuth.getInstance().signOut()
                     nav.navigate(Dest.HOME) {
@@ -269,8 +276,10 @@ fun AppNavHost() {
                             name = newItem.name,
                             serialId = newItem.serialId,
                             description = newItem.description,
+                            category = newItem.category,
                             condition = newItem.condition,
                             status = newItem.status,
+                            value = newItem.value,
                             permanentCheckout = newItem.permanentCheckout,
                             permissionNeeded = newItem.permissionNeeded,
                             driversLicenseNeeded = newItem.driversLicenseNeeded
@@ -380,6 +389,7 @@ fun AppNavHost() {
                     onAddClick = { nav.navigate(Dest.ADD_ITEM) },
                     onEditClick = { nav.navigate(Dest.VIEW_ALL_ITEMS_EDIT) },
                     onDeleteClick = { nav.navigate(Dest.VIEW_ALL_ITEMS_DELETE) },
+                    onViewDeletedClick = { nav.navigate(Dest.VIEW_DELETED_ITEMS) },
                     onBack = { nav.navigate(Dest.DASHBOARD) }
                 )
             }
@@ -448,6 +458,51 @@ fun AppNavHost() {
                 itemId = itemId,
                 onBack = { nav.popBackStack() }
             )
+        }
+
+        // Submit Report
+        composable("${Dest.SUBMIT_REPORT}/{userName}/{email}/{userId}") { backStackEntry ->
+            val userName = backStackEntry.arguments?.getString("userName") ?: ""
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            SubmitReportScreen(
+                userName = userName,
+                userEmail = email,
+                userId = userId,
+                onBack = { nav.popBackStack() }
+            )
+        }
+
+        // View Reports (Admin/Manager only)
+        composable(Dest.VIEW_REPORTS) {
+            AdminProtectedRoute(navController = nav) {
+                ViewReportsScreen(
+                    onBack = { nav.popBackStack() },
+                    onReportClick = { reportId ->
+                        nav.navigate("${Dest.REPORT_DETAIL}/$reportId")
+                    }
+                )
+            }
+        }
+
+        // Report Detail (Admin/Manager only)
+        composable("${Dest.REPORT_DETAIL}/{reportId}") { backStackEntry ->
+            val reportId = backStackEntry.arguments?.getString("reportId") ?: return@composable
+            AdminProtectedRoute(navController = nav) {
+                ReportDetailScreen(
+                    reportId = reportId,
+                    onBack = { nav.popBackStack() }
+                )
+            }
+        }
+
+        // View Deleted Items (Admin/Manager only)
+        composable(Dest.VIEW_DELETED_ITEMS) {
+            AdminProtectedRoute(navController = nav) {
+                ViewDeletedItemsScreen(
+                    onBack = { nav.popBackStack() }
+                )
+            }
         }
 
         composable(Dest.TERMS_PRIVACY) {
