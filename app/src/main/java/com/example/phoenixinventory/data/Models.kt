@@ -6,6 +6,10 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 import java.util.UUID
 
+/**
+ * Represents an inventory item in the system.
+ * Tracks all details about rigging equipment including status, condition, and value.
+ */
 data class InventoryItem(
     @DocumentId
     val id: String = UUID.randomUUID().toString(),
@@ -44,6 +48,10 @@ data class InventoryItem(
     )
 }
 
+/**
+ * Represents a user in the system with role-based permissions.
+ * Roles: Admin, Manager, Employee, Guest
+ */
 data class User(
     @DocumentId
     val id: String = UUID.randomUUID().toString(),
@@ -71,6 +79,10 @@ data class User(
     )
 }
 
+/**
+ * Tracks item checkout history.
+ * Links items to users and records checkout/check-in timestamps for audit trail.
+ */
 data class CheckoutRecord(
     @DocumentId
     val id: String = UUID.randomUUID().toString(),
@@ -92,7 +104,10 @@ data class CheckoutRecord(
     )
 }
 
-// Helper for checked out items with full details
+/**
+ * Combined view model for displaying checked out items.
+ * Joins item, user, and checkout record data with calculated days out.
+ */
 data class CheckedOutItemDetail(
     val item: InventoryItem,
     val user: User,
@@ -100,6 +115,10 @@ data class CheckedOutItemDetail(
     val daysOut: Int
 )
 
+/**
+ * User-submitted reports for issues, suggestions, bugs, or other concerns.
+ * Tracks report status and resolution by admins/managers.
+ */
 data class Report(
     @DocumentId
     val id: String = UUID.randomUUID().toString(),

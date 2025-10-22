@@ -5,21 +5,23 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 
 /**
- * DataRepository now uses Firebase as the backend.
- * All operations are synchronous wrappers around Firebase calls.
- * For better performance, consider using suspend functions directly from FirebaseRepository.
+ * Legacy synchronous data repository that wraps FirebaseRepository.
+ * Provides in-memory fallback storage if Firebase is unavailable.
+ *
+ * Note: This uses runBlocking which can impact performance.
+ * For better performance, use suspend functions from FirebaseRepository directly.
  */
 object DataRepository {
 
     private val firebaseRepo = FirebaseRepository()
 
-    // Fallback in-memory storage (used only if Firebase is unavailable)
+    // Fallback in-memory storage (used only if Firebase operations fail)
     private val items = mutableListOf<InventoryItem>()
     private val users = mutableListOf<User>()
     private val checkoutRecords = mutableListOf<CheckoutRecord>()
 
     init {
-        // Initialize with sample data
+        // Initialize in-memory storage with sample data as fallback
         users.addAll(
             listOf(
                 User(
@@ -120,10 +122,13 @@ object DataRepository {
         )
     }
 
-    // Firebase Repository Access
+    /**
+     * Provides direct access to the Firebase repository for async operations
+     */
     fun getFirebaseRepository(): FirebaseRepository = firebaseRepo
 
-    // Item operations (Firebase-backed)
+    // ==================== Item Operations ====================
+    // All operations attempt Firebase first, then fall back to in-memory storage
     fun getAllItems(): List<InventoryItem> = runBlocking {
         firebaseRepo.getAllItems().getOrElse {
             items.toList() // Fallback to in-memory
@@ -161,7 +166,7 @@ object DataRepository {
         }
     }
 
-    // User operations (Firebase-backed)
+    // ==================== User Operations ====================
     fun getAllUsers(): List<User> = runBlocking {
         firebaseRepo.getAllUsers().getOrElse {
             users.toList() // Fallback to in-memory
@@ -190,7 +195,7 @@ object DataRepository {
         }
     }
 
-    // Checkout operations (Firebase-backed)
+    // ==================== Checkout Operations ====================
     fun checkOutItem(itemId: String, userId: String, notes: String = "") = runBlocking {
         val result = firebaseRepo.checkOutItem(itemId, userId, notes)
         if (result.isFailure) {
@@ -248,7 +253,7 @@ object DataRepository {
         }
     }
 
-    // Stats operations (Firebase-backed)
+    // ==================== Statistics Operations ====================
     fun getTotalValue(): Double = runBlocking {
         firebaseRepo.getTotalValue().getOrElse {
             items.sumOf { it.value }
@@ -275,7 +280,9 @@ object DataRepository {
         }
     }
 
-    // Initialize sample data in Firebase
+    /**
+     * Initialize Firebase with sample data for first-time setup
+     */
     fun initializeSampleData() = runBlocking {
         firebaseRepo.initializeSampleData()
     }

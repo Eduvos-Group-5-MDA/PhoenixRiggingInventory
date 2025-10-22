@@ -40,18 +40,28 @@ private val Muted = Color(0xFFBFC8D4)
 private val Primary = Color(0xFF0A0C17)
 private val PrimaryContainer = Color(0xFF121729)
 
-/* ---------- Screen ---------- */
+/**
+ * Main Dashboard Screen - Central hub of the application
+ *
+ * This screen displays:
+ * - User profile information
+ * - Real-time inventory statistics
+ * - Quick action buttons for common operations
+ * - Role-based UI elements (Admin/Manager see additional statistics and actions)
+ *
+ * The dashboard fetches live data from Firebase and updates automatically
+ */
 @Composable
 fun DashboardScreen(
-    navController: NavHostController,              // 👈 Added for navigation
+    navController: NavHostController,  // For direct navigation to some routes
     userName: String,
     email: String,
-    role: String,
+    role: String,  // Determines which UI elements are visible
     totalItems: Int,
     checkedOut: Int,
-    totalValue: Double,
-    itemsOutOver30Days: Int,
-    stolenLostDamagedValue: Double,
+    totalValue: Double,  // Admin/Manager only
+    itemsOutOver30Days: Int,  // Admin/Manager only
+    stolenLostDamagedValue: Double,  // Admin/Manager only
     stolenLostDamagedCount: Int,
     userId: String,
     onLogout: () -> Unit = {},
@@ -64,6 +74,7 @@ fun DashboardScreen(
     onManageItem: () -> Unit = {},
     onManageUsers: () -> Unit = {}
 ) {
+    // State for dialog visibility
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
 
@@ -175,7 +186,7 @@ fun DashboardScreen(
                 )
             }
 
-            // Admin/Manager-only stats
+            // Admin/Manager-only stats - Only shown to users with elevated permissions
             if (role.equals("Admin", ignoreCase = true) || role.equals("Manager", ignoreCase = true)) {
                 Spacer(Modifier.height(12.dp))
 
@@ -183,12 +194,14 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // Total monetary value of all inventory items
                     StatCard(
                         value = "R${"%.0f".format(totalValue)}",
                         label = "Total Value",
                         icon = Icons.Outlined.AttachMoney,
                         modifier = Modifier.weight(1f)
                     )
+                    // Alert card - Shows items overdue for return (red if > 0)
                     StatCard(
                         value = itemsOutOver30Days.toString(),
                         label = "30+ Days Out",

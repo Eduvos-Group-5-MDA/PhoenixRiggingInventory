@@ -24,42 +24,74 @@ import com.example.phoenixinventory.data.FirebaseRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
+/**
+ * Navigation destinations used throughout the app
+ * These constants define all the routes used in the NavHost
+ */
 object Dest {
+    // Authentication & Onboarding
     const val HOME = "home"
     const val LOGIN = "login"
     const val REGISTER = "register"
     const val FORGOT_PASSWORD = "forgot_password"
+    const val TERMS_PRIVACY = "terms_privacy"
+
+    // Main Dashboard
     const val DASHBOARD = "dashboard"
+
+    // Item Management (Admin/Manager only)
     const val ADD_ITEM = "add_item"
+    const val MANAGE_ITEMS = "manage_items"
+    const val VIEW_DELETED_ITEMS = "view_deleted_items"
+
+    // Item Viewing
     const val VIEW_ALL_ITEMS = "view_all_items"
     const val VIEW_ALL_ITEMS_EDIT = "view_all_items_edit"
     const val VIEW_ALL_ITEMS_DELETE = "view_all_items_delete"
     const val VIEW_ALL_ITEMS_CHECKOUT = "view_all_items_checkout"
+    const val ITEM_DETAIL = "item_detail"
+
+    // Item Status Views
     const val CHECKED_OUT_ITEMS = "checked_out_items"
     const val CHECKED_IN_ITEMS = "checked_in_items"
     const val MY_CHECKED_OUT_ITEMS = "my_checked_out_items"
+
+    // Check-in/Check-out Operations
     const val CHECKOUT_ITEMS_LIST = "checkout_items_list"
     const val CHECKIN_ITEMS_LIST = "checkin_items_list"
-    const val ITEM_DETAIL = "item_detail"
+    const val CHECK_IN_OUT = "check_in_out"
+
+    // Item Actions (CRUD operations)
     const val ITEM_EDIT = "item_edit"
     const val ITEM_DELETE = "item_delete"
     const val ITEM_CHECKOUT = "item_checkout"
-    const val CHECK_IN_OUT = "check_in_out"
+
+    // User Management (Admin/Manager only)
     const val MANAGE_USERS = "manage_users"
     const val USER_EDIT = "user_edit"
-    const val MANAGE_ITEMS = "manage_items"
-    const val TERMS_PRIVACY = "terms_privacy"
+
+    // Reporting System
     const val SUBMIT_REPORT = "submit_report"
     const val VIEW_REPORTS = "view_reports"
     const val REPORT_DETAIL = "report_detail"
-    const val VIEW_DELETED_ITEMS = "view_deleted_items"
+
+    // Statistics (Admin/Manager only)
     const val STATS = "stats"
     const val STATS_ITEMS_OUT_30_DAYS = "stats_items_out_30_days"
     const val STATS_TOTAL_VALUE = "stats_total_value"
     const val STATS_LOST_DAMAGED_DELETED = "stats_lost_damaged_deleted"
 }
 
-// Helper composable to protect admin-only routes
+/**
+ * Higher-order composable that protects admin/manager-only routes
+ *
+ * This function:
+ * 1. Fetches the current user's role from Firestore
+ * 2. Shows a loading indicator while checking permissions
+ * 3. Either displays the protected content or shows access denied screen
+ *
+ * Only users with "Admin" or "Manager" roles can access protected routes
+ */
 @Composable
 fun AdminProtectedRoute(
     navController: NavHostController,
@@ -71,10 +103,12 @@ fun AdminProtectedRoute(
     var isLoading by remember { mutableStateOf(true) }
     val context = LocalContext.current
 
+    // Fetch user role when this composable is first displayed
     LaunchedEffect(Unit) {
         scope.launch {
             val userId = FirebaseAuth.getInstance().currentUser?.uid
             if (userId != null) {
+                // Query Firestore for user details including role
                 val user = firebaseRepo.getUserById(userId).getOrNull()
                 userRole = user?.role
             }
@@ -82,6 +116,7 @@ fun AdminProtectedRoute(
         }
     }
 
+    // Show loading state while checking permissions
     if (isLoading) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -91,9 +126,10 @@ fun AdminProtectedRoute(
         }
     } else if (userRole?.equals("Admin", ignoreCase = true) == true ||
                userRole?.equals("Manager", ignoreCase = true) == true) {
+        // User has proper permissions - show the protected content
         content()
     } else {
-        // Show access denied screen
+        // User doesn't have permissions - show access denied screen
         AccessDeniedScreen(
             onBack = {
                 Toast.makeText(context, "Admin or Manager access required", Toast.LENGTH_SHORT).show()
@@ -163,10 +199,22 @@ fun AccessDeniedScreen(onBack: () -> Unit) {
     }
 }
 
+/**
+ * Main navigation host for the entire application
+ *
+ * This defines all navigation routes and their corresponding screens.
+ * The navigation follows a single-activity architecture with Jetpack Navigation Compose.
+ *
+ * Key navigation patterns:
+ * - All back buttons navigate to explicit parent screens (no popBackStack)
+ * - Admin/Manager routes are protected with AdminProtectedRoute
+ * - Authentication flow prevents back navigation to login after successful login
+ */
 @Composable
 fun AppNavHost() {
     val nav = rememberNavController()
 
+    // NavHost manages navigation state and transitions between screens
     NavHost(navController = nav, startDestination = Dest.HOME) {
 
         composable(Dest.HOME) {

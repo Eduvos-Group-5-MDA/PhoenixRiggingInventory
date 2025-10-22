@@ -10,13 +10,18 @@ import java.util.concurrent.TimeUnit
 /**
  * Repository class that handles all Firebase Firestore operations.
  * All methods are suspend functions for proper coroutine support.
+ *
+ * This is the single source of truth for all database operations in the app.
+ * It provides a clean API for CRUD operations on items, users, checkouts, and reports.
  */
 class FirebaseRepository {
 
+    // Firestore database instance - initialized once and reused
     private val db = FirebaseFirestore.getInstance()
 
     companion object {
         private const val TAG = "FirebaseRepository"
+        // Collection names for Firestore - centralized for consistency
         private const val COLLECTION_ITEMS = "inventory_items"
         private const val COLLECTION_USERS = "users"
         private const val COLLECTION_CHECKOUTS = "checkout_records"
@@ -237,7 +242,8 @@ class FirebaseRepository {
     }
 
     /**
-     * Get the current user (for demo purposes, returns first user)
+     * Get a user from the database (used as fallback when auth user lookup fails)
+     * Note: In production, use getUserById() with FirebaseAuth.currentUser.uid instead
      */
     suspend fun getCurrentUser(): Result<User?> = try {
         val snapshot = db.collection(COLLECTION_USERS)
@@ -288,20 +294,24 @@ class FirebaseRepository {
 
     /**
      * Check out an item to a user
+     * This is a critical operation that:
+     * 1. Validates item availability
+     * 2. Creates a checkout record for tracking
+     * 3. Updates the item status atomically
      */
     suspend fun checkOutItem(itemId: String, userId: String, notes: String = ""): Result<Unit> {
         return try {
-            // Get the item
+            // Fetch the item document from Firestore
             val itemDoc = db.collection(COLLECTION_ITEMS).document(itemId).get().await()
             val item = itemDoc.toObject(InventoryItem::class.java)
                 ?: return Result.failure(Exception("Item not found"))
 
-            // Check if item is available
+            // Validate that the item is currently available for checkout
             if (item.status != "Available") {
                 return Result.failure(Exception("Item is not available for checkout"))
             }
 
-            // Create checkout record
+            // Create a new checkout record with timestamp for audit trail
             val checkoutRecord = CheckoutRecord(
                 itemId = itemId,
                 userId = userId,
@@ -309,12 +319,13 @@ class FirebaseRepository {
                 notes = notes
             )
 
+            // Store the checkout record in the checkouts collection
             db.collection(COLLECTION_CHECKOUTS)
                 .document(checkoutRecord.id)
                 .set(checkoutRecord)
                 .await()
 
-            // Update item status
+            // Update the item's status to reflect it's now checked out
             db.collection(COLLECTION_ITEMS)
                 .document(itemId)
                 .update("status", "Checked Out", "updatedAt", Date())
@@ -464,36 +475,48 @@ class FirebaseRepository {
 
     /**
      * Get items checked out longer than specified days
+     * This function performs a complex query to find overdue items by:
+     * 1. Querying checkouts that are still active (not checked in)
+     * 2. Filtering by checkout date older than the cutoff
+     * 3. Joining with items and users collections for complete details
+     * 4. Calculating exact days out for each item
      */
     suspend fun getItemsOutLongerThan(days: Int): Result<List<CheckedOutItemDetail>> = try {
+        // Calculate the cutoff date (current time minus specified days)
         val cutoffDate = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(days.toLong()))
 
+        // Query for active checkouts (checkedInAt is null) older than cutoff date
         val checkoutSnapshot = db.collection(COLLECTION_CHECKOUTS)
-            .whereEqualTo("checkedInAt", null)
-            .whereLessThan("checkedOutAt", cutoffDate)
+            .whereEqualTo("checkedInAt", null)  // Only active checkouts
+            .whereLessThan("checkedOutAt", cutoffDate)  // Checked out before cutoff
             .get()
             .await()
 
+        // Build detailed checkout information by joining multiple collections
         val overdueItems = checkoutSnapshot.documents.mapNotNull { doc ->
             val checkoutRecord = doc.toObject(CheckoutRecord::class.java) ?: return@mapNotNull null
 
+            // Fetch the associated item details
             val itemDoc =
                 db.collection(COLLECTION_ITEMS).document(checkoutRecord.itemId).get().await()
             val item = itemDoc.toObject(InventoryItem::class.java) ?: return@mapNotNull null
 
-            // Filter out deleted items
+            // Skip deleted items from the results
             if (item.deleted) return@mapNotNull null
 
+            // Fetch the user who checked out the item
             val userDoc =
                 db.collection(COLLECTION_USERS).document(checkoutRecord.userId).get().await()
             val user = userDoc.toObject(User::class.java) ?: return@mapNotNull null
 
+            // Calculate how many days the item has been checked out
             val daysOut = if (checkoutRecord.checkedOutAt != null) {
                 TimeUnit.MILLISECONDS.toDays(
                     Date().time - checkoutRecord.checkedOutAt!!.time
                 ).toInt()
             } else 0
 
+            // Return combined detail object with all relevant information
             CheckedOutItemDetail(item, user, checkoutRecord, daysOut)
         }
 

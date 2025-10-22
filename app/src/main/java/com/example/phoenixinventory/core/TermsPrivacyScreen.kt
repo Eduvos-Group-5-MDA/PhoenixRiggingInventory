@@ -29,7 +29,10 @@ private val OnDark = Color(0xFFE7EBF2)
 private val Muted = Color(0xFFBFC8D4)
 private val PrimaryContainer = Color(0xFF121729)
 
-/* ---------- Screen ---------- */
+/**
+ * Terms of service and privacy policy screen.
+ * Displays legal information for user acceptance during registration.
+ */
 @Composable
 fun TermsPrivacyScreen(
     onBack: () -> Unit

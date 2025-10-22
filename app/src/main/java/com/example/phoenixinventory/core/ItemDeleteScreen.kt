@@ -33,6 +33,10 @@ private val Muted = Color(0xFFBFC8D4)
 private val PrimaryContainer = Color(0xFF121729)
 private val DangerRed = Color(0xFFEF4444)
 
+/**
+ * Item deletion screen (Admin/Manager only).
+ * Marks items as deleted (soft delete) - they can be restored later.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDeleteScreen(

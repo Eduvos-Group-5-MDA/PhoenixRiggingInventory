@@ -24,6 +24,10 @@ import com.example.phoenixinventory.data.Report
 import com.example.phoenixinventory.ui.theme.AppColors
 import kotlinx.coroutines.launch
 
+/**
+ * Report submission screen for all users.
+ * Allows users to submit issues, suggestions, bugs, or other concerns to admins/managers.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubmitReportScreen(

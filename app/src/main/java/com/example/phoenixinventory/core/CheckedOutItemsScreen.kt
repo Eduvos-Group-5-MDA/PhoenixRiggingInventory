@@ -24,6 +24,10 @@ import com.example.phoenixinventory.data.DataRepository
 import com.example.phoenixinventory.data.FirebaseRepository
 import kotlinx.coroutines.launch
 
+/**
+ * Displays all items currently checked out by any user.
+ * Shows who has each item and for how many days.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckedOutItemsScreen(

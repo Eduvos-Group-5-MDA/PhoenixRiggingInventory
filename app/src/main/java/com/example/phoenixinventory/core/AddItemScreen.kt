@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.phoenixinventory.ui.theme.AppColors
 
-/* ---------- Model you can reuse later ---------- */
+/**
+ * Data class representing a new equipment item to be added
+ */
 data class NewEquipment(
     val name: String,
     val serialId: String,
@@ -44,7 +46,10 @@ data class NewEquipment(
     val driversLicenseNeeded: Boolean
 )
 
-/* ---------- Screen ---------- */
+/**
+ * Screen for adding new inventory items (Admin/Manager only).
+ * Collects all required item information with validation before submission.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddItemScreen(
@@ -267,7 +272,7 @@ fun AddItemScreen(
                                     permissionNeeded = permission,
                                     driversLicenseNeeded = license
                                 )
-                                Toast.makeText(ctx, "Item added (demo)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(ctx, "Item added successfully", Toast.LENGTH_SHORT).show()
                                 onSubmit(item)
                             }
                         },

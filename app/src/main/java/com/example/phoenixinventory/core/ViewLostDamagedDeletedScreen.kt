@@ -22,6 +22,21 @@ import com.example.phoenixinventory.data.InventoryItem
 import com.example.phoenixinventory.ui.theme.AppColors
 import kotlinx.coroutines.launch
 
+/**
+ * Statistics Screen: Lost/Damaged/Deleted Items Report
+ *
+ * Comprehensive report showing all problematic items and their total value loss.
+ *
+ * Features:
+ * - Large red card showing total lost value
+ * - Breakdown by category (Lost/Damaged vs Deleted)
+ * - Each item shows status badge with appropriate icon and color
+ * - Separate sections for active problem items and deleted items
+ * - Values displayed in Rands (R)
+ * - Admin/Manager only screen
+ *
+ * This helps track inventory shrinkage and financial impact
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewLostDamagedDeletedScreen(
@@ -42,13 +57,16 @@ fun ViewLostDamagedDeletedScreen(
     var isLoading by remember { mutableStateOf(true) }
     var totalValue by remember { mutableStateOf(0.0) }
 
+    // Load problem items from both collections
     LaunchedEffect(Unit) {
         scope.launch {
             isLoading = true
+            // Fetch items marked as Stolen, Lost, or Damaged
             stolenLostDamagedItems = firebaseRepo.getStolenLostDamagedItems().getOrNull() ?: emptyList()
+            // Fetch soft-deleted items
             deletedItems = firebaseRepo.getDeletedItems().getOrNull() ?: emptyList()
 
-            // Calculate total value of all items
+            // Calculate total financial impact
             totalValue = stolenLostDamagedItems.sumOf { it.value } + deletedItems.sumOf { it.value }
             isLoading = false
         }

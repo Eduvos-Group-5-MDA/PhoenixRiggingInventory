@@ -26,6 +26,10 @@ import com.example.phoenixinventory.data.InventoryItem
 import com.example.phoenixinventory.ui.theme.AppColors
 import kotlinx.coroutines.launch
 
+/**
+ * Displays a searchable, filterable list of all inventory items.
+ * Supports filtering by category, status, and condition.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewAllItemsScreen(

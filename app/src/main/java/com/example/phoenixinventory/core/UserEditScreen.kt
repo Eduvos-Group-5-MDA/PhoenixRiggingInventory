@@ -26,6 +26,10 @@ import com.example.phoenixinventory.data.FirebaseRepository
 import com.example.phoenixinventory.data.User
 import kotlinx.coroutines.launch
 
+/**
+ * User editing screen (Admin/Manager only).
+ * Allows modification of user profile information and roles.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserEditScreen(

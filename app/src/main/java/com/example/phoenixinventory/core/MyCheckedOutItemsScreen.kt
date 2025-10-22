@@ -27,6 +27,10 @@ import com.example.phoenixinventory.ui.theme.AppColors
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
+/**
+ * Shows items checked out by the current logged-in user.
+ * Personal view filtered to the active user's checkouts only.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyCheckedOutItemsScreen(

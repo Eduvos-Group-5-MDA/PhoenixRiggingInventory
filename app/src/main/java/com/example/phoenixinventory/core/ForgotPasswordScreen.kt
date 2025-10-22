@@ -34,6 +34,10 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+/**
+ * Password reset screen using Firebase Authentication.
+ * Sends a password reset email to the user's registered email address.
+ */
 @Composable
 fun ForgotPasswordScreen(
     onBack: () -> Unit = {}

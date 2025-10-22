@@ -17,7 +17,9 @@
       "Bash(powershell -command \"cd ''C:\\Development\\PhoenixRigginInventory\\PhoenixRigginInventory''; .\\gradlew.bat build\")",
       "Bash(powershell -command \"cd ''C:\\Development\\PhoenixRigginInventory\\PhoenixRigginInventory''; .\\gradlew.bat assembleDebug\")",
       "Bash(powershell -command \"Get-Content ''C:\\Development\\PhoenixRigginInventory\\PhoenixRigginInventory\\app\\src\\main\\java\\com\\example\\phoenixinventory\\core\\CheckedInItemsScreen.kt'' | Select-Object -First 30\")",
-      "Bash(powershell -command \"Get-Content ''C:\\Development\\PhoenixRigginInventory\\PhoenixRigginInventory\\app\\src\\main\\java\\com\\example\\phoenixinventory\\core\\CheckoutItemsListScreen.kt'' | Select-String -Pattern ''var searchQuery|var filter|FilterChip'' -Context 2,2\")"
+      "Bash(powershell -command \"Get-Content ''C:\\Development\\PhoenixRigginInventory\\PhoenixRigginInventory\\app\\src\\main\\java\\com\\example\\phoenixinventory\\core\\CheckoutItemsListScreen.kt'' | Select-String -Pattern ''var searchQuery|var filter|FilterChip'' -Context 2,2\")",
+      "Bash(powershell -command:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

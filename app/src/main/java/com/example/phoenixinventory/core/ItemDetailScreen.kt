@@ -23,6 +23,10 @@ import com.example.phoenixinventory.data.InventoryItem
 import com.example.phoenixinventory.ui.theme.AppColors
 import kotlinx.coroutines.launch
 
+/**
+ * Detailed view of a single inventory item.
+ * Shows all item information including current checkout status if applicable.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailScreen(

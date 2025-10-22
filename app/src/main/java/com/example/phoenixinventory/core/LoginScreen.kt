@@ -35,6 +35,10 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+/**
+ * Login screen with Firebase Authentication.
+ * Validates user credentials and navigates to dashboard on successful login.
+ */
 @Composable
 fun LoginScreen(
     onBack: () -> Unit,
@@ -62,6 +66,9 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val firebaseRepo = remember { com.example.phoenixinventory.data.FirebaseRepository() }
 
+    /**
+     * Validates email format and password length before attempting login
+     */
     fun validate(): Boolean {
         emailError =
             if (email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches())
@@ -241,16 +248,17 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(18.dp))
 
-                    // Login button with Firebase Authentication
+                    // Login button - handles Firebase Authentication
                     Button(
                         onClick = {
                             if (validate()) {
                                 isLoading = true
                                 scope.launch {
                                     try {
+                                        // Authenticate with Firebase Auth
                                         auth.signInWithEmailAndPassword(email.trim(), password).await()
 
-                                        // After successful login, fetch user document
+                                        // Fetch user profile from Firestore to ensure it exists
                                         val userId = auth.currentUser?.uid
                                         if (userId != null) {
                                             val userResult = firebaseRepo.getUserById(userId)

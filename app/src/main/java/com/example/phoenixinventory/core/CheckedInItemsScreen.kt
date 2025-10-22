@@ -25,6 +25,10 @@ import com.example.phoenixinventory.data.InventoryItem
 import com.example.phoenixinventory.ui.theme.AppColors
 import kotlinx.coroutines.launch
 
+/**
+ * Displays all currently available (checked-in) items.
+ * Excludes items that are checked out or in other statuses.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckedInItemsScreen(

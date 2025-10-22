@@ -18,7 +18,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/* ---------- Screen ---------- */
+/**
+ * Statistics Hub Screen
+ *
+ * Central hub for accessing advanced statistics and reports.
+ * This screen is only accessible to Admin and Manager roles.
+ *
+ * Available reports:
+ * 1. Items Out 30+ Days - Overdue item tracking
+ * 2. Total Value Report - Complete inventory valuation
+ * 3. Lost/Damaged/Deleted - Problem items and shrinkage report
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(

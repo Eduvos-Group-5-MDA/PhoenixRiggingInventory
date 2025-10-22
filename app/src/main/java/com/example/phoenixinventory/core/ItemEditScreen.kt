@@ -36,6 +36,10 @@ private val Muted = Color(0xFFBFC8D4)
 private val Primary = Color(0xFF0A0C17)
 private val PrimaryContainer = Color(0xFF121729)
 
+/**
+ * Item editing screen (Admin/Manager only).
+ * Allows modification of all inventory item fields with validation.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemEditScreen(

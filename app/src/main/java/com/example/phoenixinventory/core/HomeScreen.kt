@@ -37,7 +37,10 @@ import com.example.phoenixinventory.R
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.phoenixinventory.ui.theme.AppColors
 
-/* -------------------- Public screen -------------------- */
+/**
+ * Welcome/Landing screen shown on app launch.
+ * Provides access to login and registration for unauthenticated users.
+ */
 @Composable
 fun HomeScreen(
     onLogin: () -> Unit = {},

@@ -37,6 +37,10 @@ private val Primary = Color(0xFF0A0C17)
 private val PrimaryContainer = Color(0xFF121729)
 private val CheckoutBlue = Color(0xFF0A6CFF)
 
+/**
+ * Item checkout screen with user selection.
+ * Allows checking out items to registered users with optional notes.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemCheckoutScreen(

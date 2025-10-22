@@ -46,7 +46,11 @@ import kotlinx.coroutines.tasks.await
 enum class UserRole { Guest, Employee }
 private enum class PwdStrength { Weak, Medium, Strong }
 
-/* ---------- Screen ---------- */
+/**
+ * User registration screen with Firebase Authentication integration.
+ * Creates both a Firebase Auth account and a Firestore user profile.
+ * Includes comprehensive validation for all user input fields.
+ */
 @Composable
 fun RegisterScreen(
     onBack: () -> Unit,

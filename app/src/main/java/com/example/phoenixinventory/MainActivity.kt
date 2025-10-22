@@ -15,7 +15,17 @@ import com.example.phoenixinventory.data.AuthState
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 
+/**
+ * Main entry point of the Phoenix Rigging Inventory application.
+ * Initializes Firebase services and sets up the Compose UI with navigation.
+ */
 class MainActivity : ComponentActivity() {
+    /**
+     * Called when the activity is created. Handles:
+     * - Firebase initialization
+     * - Auth state setup
+     * - Compose UI initialization with theme
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 

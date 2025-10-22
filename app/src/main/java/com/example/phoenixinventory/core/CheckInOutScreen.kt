@@ -35,6 +35,10 @@ private val Muted = Color(0xFFBFC8D4)
 private val Primary = Color(0xFF0A0C17)
 private val PrimaryContainer = Color(0xFF121729)
 
+/**
+ * Check-in screen for returning borrowed items.
+ * Updates item status to Available and closes the checkout record.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckInOutScreen(

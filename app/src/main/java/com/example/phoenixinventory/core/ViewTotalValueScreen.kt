@@ -22,6 +22,18 @@ import com.example.phoenixinventory.data.InventoryItem
 import com.example.phoenixinventory.ui.theme.AppColors
 import kotlinx.coroutines.launch
 
+/**
+ * Statistics Screen: Total Inventory Value Report
+ *
+ * Displays complete inventory valuation with item-by-item breakdown.
+ *
+ * Features:
+ * - Large card showing total value of all inventory
+ * - List of all items sorted by value (highest first)
+ * - Each item shows name, serial code, and individual value
+ * - Values displayed in Rands (R)
+ * - Admin/Manager only screen
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewTotalValueScreen(
@@ -41,10 +53,12 @@ fun ViewTotalValueScreen(
     var isLoading by remember { mutableStateOf(true) }
     var totalValue by remember { mutableStateOf(0.0) }
 
+    // Load all items and calculate total value
     LaunchedEffect(Unit) {
         scope.launch {
             isLoading = true
             items = firebaseRepo.getAllItems().getOrNull() ?: emptyList()
+            // Calculate sum of all item values
             totalValue = items.sumOf { it.value }
             isLoading = false
         }

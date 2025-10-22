@@ -11,6 +11,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
+/**
+ * Dark color scheme configuration for Material 3.
+ * Uses custom Phoenix Rigging dark theme colors.
+ */
 private val DarkColorScheme = darkColorScheme(
     primary = DarkPrimary,
     secondary = DarkCharcoal,
@@ -24,6 +28,10 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = DarkOnDark
 )
 
+/**
+ * Light color scheme configuration for Material 3.
+ * Optional alternative theme (app primarily uses dark theme).
+ */
 private val LightColorScheme = lightColorScheme(
     primary = LightPrimary,
     secondary = LightCard,
@@ -37,6 +45,10 @@ private val LightColorScheme = lightColorScheme(
     onSurface = LightOnLight
 )
 
+/**
+ * Main theme composable for Phoenix Rigging Inventory app.
+ * Supports both dark and light themes with custom color schemes.
+ */
 @Composable
 fun PhoenixInventoryTheme(
     darkTheme: Boolean = ThemeState.isDarkMode,

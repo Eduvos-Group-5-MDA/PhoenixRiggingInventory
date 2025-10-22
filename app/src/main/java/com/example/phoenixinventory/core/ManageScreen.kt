@@ -24,7 +24,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/* ---------- Screen ---------- */
+/**
+ * Item management hub screen (Admin/Manager only).
+ * Central access point for adding, editing, deleting, and restoring inventory items.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageScreen(

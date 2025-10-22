@@ -25,6 +25,10 @@ import com.example.phoenixinventory.data.FirebaseRepository
 import com.example.phoenixinventory.data.CheckedOutItemDetail
 import kotlinx.coroutines.launch
 
+/**
+ * User management screen (Admin/Manager only).
+ * Lists all users with options to edit or delete user accounts.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageUsersScreen(
